@@ -1,7 +1,18 @@
 cmake_minimum_required (VERSION 2.8.12)
 project (cs225a)
+# SET(CMAKE_CXX_FLAGS "-std=c++11 -I/usr/include -I/usr/local/include -I/usr/local/include/opencv4")
 SET(CMAKE_CXX_FLAGS "-std=c++11 -I/usr/include -I/usr/local/include")
 SET(CMAKE_BUILD_TYPE "Debug")
+
+# set(OpenCV_DIR /usr/local/include/opencv4/)
+
+# configure the necessary common CMake environment variables
+# needed to include and link the OpenCV program into this
+# demo project, namely OpenCV_INCLUDE_DIRS and OpenCV_LIBS
+# find_package( OpenCV REQUIRED )
+
+# tell the build to include the headers from OpenCV
+# include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 # set common dependencies
 # - eigen3
@@ -69,12 +80,8 @@ set(CS225A_COMMON_LIBRARIES
 set (CS225A_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin)
 
 add_subdirectory(lecture2_demo)
-# add_subdirectory(hw0)
-# add_subdirectory(hw1)
-# add_subdirectory(hw2)
-# add_subdirectory(hw3)
 add_subdirectory(mmp_panda_example)
 add_subdirectory(panda_gripper_example)
 add_subdirectory(toro_example)
-add_subdirectory(collision_demo)
+add_subdirectory(stanbot_angle_choosing)
 add_subdirectory(template_project)

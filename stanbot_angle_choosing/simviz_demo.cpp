@@ -12,11 +12,6 @@
 // #include "force_sensor/ForceSensorDisplay.h"
 #include <signal.h>
 
-// #include <iostream>
-// #include <opencv2/opencv.hpp>
-// using namespace cv;
-// using namespace std;
-
 // flags for simulation and controller states
 bool fSimulationRunning = false;
 void sighandler(int) { fSimulationRunning = false; }
@@ -38,8 +33,6 @@ RedisClient redis_client;
 // - write:
 const std::string JOINT_ANGLES_KEY = "cs225a::robot::stanbot::sensors::q";
 const std::string JOINT_VELOCITIES_KEY = "cs225a::robot::stanbot::sensors::dq";
-const std::string OBJ_JOINT_ANGLES_KEY = "cs225a::object::cup::sensors::q";
-const std::string OBJ_JOINT_VELOCITIES_KEY = "cs225a::object::cup::sensors::dq";
 const std::string CAMERA_POS_KEY = "cs225a::camera::pos";
 const std::string CAMERA_ORI_KEY = "cs225a::camera::ori";
 const std::string CAMERA_DETECT_KEY = "cs225a::camera::detect";
@@ -100,26 +93,6 @@ int selectedPose = 0;
 int main()
 {
     cout << "Loading URDF world model file: " << world_file << endl;
-
-    // cout << "------------------PRE LOADED IMAGE---------------" << endl;
-
-    // Mat image = imread("/Users/mariechu/sai2/apps/RoboYoga/cat.png");
-
-    // // Error Handling
-    // if (image.empty())
-    // {
-    //     cout << "Image File "
-    //          << "Not Found" << endl;
-
-    //     // wait for any key press
-    //     cin.get();
-    //     return -1;
-    // }
-
-    // // Show Image inside a window with
-    // // the name provided
-    // imshow("Window Name", image);
-    // cout << "------------------LOADED IMAGE---------------" << endl;
 
     // start redis client
     redis_client = RedisClient();

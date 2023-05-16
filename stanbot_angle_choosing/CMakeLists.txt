@@ -1,11 +1,9 @@
 # create an executable
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CS225A_BINARY_DIR}/stanbot_angle_choosing)
 ADD_EXECUTABLE (simviz_demo simviz_demo.cpp ${CS225A_COMMON_SOURCE})
-ADD_EXECUTABLE (stanbot_angle_choosing controller_demo.cpp ${CS225A_COMMON_SOURCE})
 
 # and link the library against the executable
 TARGET_LINK_LIBRARIES (simviz_demo ${CS225A_COMMON_LIBRARIES})
-TARGET_LINK_LIBRARIES (stanbot_angle_choosing ${CS225A_COMMON_LIBRARIES})
 
 # export resources such as model files.
 # NOTE: this requires an install build

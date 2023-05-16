@@ -121,7 +121,6 @@ int main()
     T_world_robot.linear() = R_world_robot;
 
     auto robot = new Sai2Model::Sai2Model(robot_file, false, T_world_robot);
-    robot->_q(0) = -0.8;
     robot->updateModel();
 
     // load robot objects

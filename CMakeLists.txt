@@ -79,9 +79,5 @@ set(CS225A_COMMON_LIBRARIES
 
 set (CS225A_BINARY_DIR ${PROJECT_SOURCE_DIR}/bin)
 
-add_subdirectory(lecture2_demo)
-add_subdirectory(mmp_panda_example)
-add_subdirectory(panda_gripper_example)
-add_subdirectory(toro_example)
 add_subdirectory(stanbot_angle_choosing)
 add_subdirectory(template_project)

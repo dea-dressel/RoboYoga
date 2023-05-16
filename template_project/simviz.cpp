@@ -18,26 +18,15 @@ bool fSimulationRunning = false;
 void sighandler(int){fSimulationRunning = false;}
 
 #include "redis_keys.h"
-#include "../include/object.h"
 
 using namespace std;
 using namespace Eigen;
 
 // specify urdf and robots 
 const string world_file = "./resources/world.urdf";
-const string robot_file = "./resources/panda_arm.urdf";
-const string robot_name = "panda";
+const string robot_file = "./resources/stanbot.urdf";
+const string robot_name = "stanbot";
 const string camera_name = "camera_fixed";
-const string base_link_name = "link0";
-const string ee_link_name = "link7";
-
-// dynamic objects information
-const vector<string> object_names = {"cup"};
-vector<Vector3d> object_pos;
-vector<Vector3d> object_lin_vel;
-vector<Quaterniond> object_ori;
-vector<Vector3d> object_ang_vel;
-const int n_objects = object_names.size();
 
 // redis client 
 RedisClient redis_client; 
@@ -84,7 +73,6 @@ int main() {
 	Eigen::Vector3d camera_pos, camera_lookat, camera_vertical;
 	graphics->getCameraPose(camera_name, camera_pos, camera_vertical, camera_lookat);
 	graphics->_world->setBackgroundColor(66.0/255, 135.0/255, 245.0/255);  // set blue background 	
-	graphics->showLinkFrame(true, robot_name, ee_link_name, 0.15);  // can add frames for different links
 	graphics->getCamera(camera_name)->setClippingPlanes(0.1, 50);  // set the near and far clipping planes 
 
 	// load robots
@@ -98,17 +86,6 @@ int main() {
 	sim->setJointPositions(robot_name, robot->_q);
 	sim->setJointVelocities(robot_name, robot->_dq);
 
-	// fill in object information 
-	for (int i = 0; i < n_objects; ++i) {
-		Vector3d _object_pos, _object_lin_vel, _object_ang_vel;
-		Quaterniond _object_ori;
-		sim->getObjectPosition(object_names[i], _object_pos, _object_ori);
-		sim->getObjectVelocity(object_names[i], _object_lin_vel, _object_ang_vel);
-		object_pos.push_back(_object_pos);
-		object_lin_vel.push_back(_object_lin_vel);
-		object_ori.push_back(_object_ori);
-		object_ang_vel.push_back(_object_ang_vel);
-	}
 
     // set co-efficient of restition to zero for force control
     sim->setCollisionRestitution(0.0);
@@ -162,30 +139,16 @@ int main() {
 	// initialize glew
 	glewInitialize();
 
-	// add obj file once 
-	string mesh_filename = "../../model/test_objects/meshes/visual/cup.obj";
-	addMesh(graphics, mesh_filename, Vector3d(0.2, -0.2, 0), Quaterniond(1, 0, 0, 0), Vector3d(1, 1, 1));
-
 	// while window is open:
 	int count = 0;
-	Vector3d start_pos = Vector3d(1, -1, 1);
 
 	while (!glfwWindowShouldClose(window) && fSimulationRunning)
 	{
-		// add sphere for every nth count
-		if (count % 60 == 0) {  // default refresh rate 
-			addSphere(graphics, "test", start_pos, Quaterniond(1, 0, 0, 0), 0.01, Vector4d(1, 1, 1, 1));
-			addBox(graphics, "test", start_pos + Vector3d(-2, 0, 0), Quaterniond(1, 0, 0, 0), Vector3d(0.05, 0.05, 0.05), Vector4d(1, 1, 1, 1));
-			start_pos(1) += 1e-1;
-		}
 
 		// update graphics. this automatically waits for the correct amount of time
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
 		graphics->updateGraphics(robot_name, robot); 
-		for (int i = 0; i < n_objects; ++i) {
-			graphics->updateObjectGraphics(object_names[i], object_pos[i], object_ori[i]);
-		}
 		graphics->render(camera_name, width, height);
 
 		// swap buffers
@@ -333,12 +296,6 @@ void simulation(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim)
 		sim->getJointPositions(robot_name, robot->_q);
 		sim->getJointVelocities(robot_name, robot->_dq);
 		robot->updateModel();
-
-		// get dynamic object positions
-		for (int i = 0; i < n_objects; ++i) {
-			sim->getObjectPosition(object_names[i], object_pos[i], object_ori[i]);
-			sim->getObjectVelocity(object_names[i], object_lin_vel[i], object_ang_vel[i]);
-		}
 
 		// execute redis write callback
 		redis_client.executeWriteCallback(0);		

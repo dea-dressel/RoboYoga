@@ -83,7 +83,7 @@ int main() {
 	VectorXd q_init_desired(dof);
 
 	// chair pose
-	q_init_desired << 0.454621,-1.599603,1.473881,-0.171505,-0.235412,0.327871,0.210719,-1.404628,1.601027,-0.508144,-0.008615,-0.098502,0.336433,-3.321765,-0.447239,0.059882,-0.036452,0.422319,0.770947,1.522959,-3.299092,-0.266798,-0.112313,-0.106552,0.390400,-0.107298,-0.506217,-0.787140,0.192233,0.269256;
+	q_init_desired << 0.454621,-1.599603,1.473881,-0.171505,-0.235412,0.327871,0.210719,-1.404628,1.599603,-0.508144,-0.008615,-0.098502,0.336433,-3.321765,-0.447239,0.059882,-0.036452,0.422319,0.770947,1.522959,-3.299092,-0.266798,-0.112313,-0.106552,0.390400,-0.107298,-0.506217,-0.787140,0.192233,0.269256;
 	// q_init_desired *= M_PI/180.0;
 	joint_task->_desired_position = q_init_desired;
 
@@ -121,6 +121,12 @@ int main() {
 
 		// execute redis read callback
 		redis_client.executeReadCallback(0);
+
+		// get user selected pose
+		// int current_pose = redis_client.get("PoseSelection");
+		int current_pose = 1;
+		// cout << "current pose: " << current_pose << endl;
+		
 
 		// update model
 		robot->updateModel();

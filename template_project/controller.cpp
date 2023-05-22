@@ -1,7 +1,7 @@
 /**
  * @file controller.cpp
  * @brief Controller file
- * 
+ *
  */
 
 #include <Sai2Model.h>
@@ -17,27 +17,31 @@ using namespace Eigen;
 
 #include <signal.h>
 bool runloop = false;
-void sighandler(int){runloop = false;}
+void sighandler(int) { runloop = false; }
 
-#define RAD(deg) ((double)(deg) * M_PI / 180.0)
+#define RAD(deg) ((double)(deg)*M_PI / 180.0)
 
 #include "redis_keys.h"
 
+const std::string HEAD_POS_KEY = "kinect::pos::head";
+
 // Location of URDF files specifying world and robot information
 const string robot_file = "./resources/stanbot.urdf";
+const string human_file = "./resources/human.urdf";
 
-enum State 
+enum State
 {
-	POSTURE = 0, 
+	POSTURE = 0,
 	MOTION
 };
 
-int main() {
+int main()
+{
 
-	// initial state 
+	// initial state
 	int state = POSTURE;
 	string controller_status = "1";
-	
+
 	// start redis client
 	auto redis_client = RedisClient();
 	redis_client.connect();
@@ -53,10 +57,22 @@ int main() {
 	robot->_dq = redis_client.getEigenMatrixJSON(JOINT_VELOCITIES_KEY);
 	robot->updateModel();
 
+	auto human = new Sai2Model::Sai2Model(human_file, false);
+	human->_q = redis_client.getEigenMatrixJSON(HUMAN_JOINT_ANGLES_KEY);
+	human->_dq = redis_client.getEigenMatrixJSON(HUMAN_JOINT_VELOCITIES_KEY);
+	human->updateModel();
+
 	// prepare controller
 	int dof = robot->dof();
 	VectorXd command_torques = VectorXd::Zero(dof);
 	MatrixXd N_prec = MatrixXd::Identity(dof, dof);
+
+	int human_dof = human->dof();
+	VectorXd human_command_torques = VectorXd::Zero(human_dof);
+	MatrixXd human_N_prec = MatrixXd::Identity(human_dof, human_dof);
+
+	Eigen::Vector3d head_pos;
+	redis_client.setEigenMatrixJSON(HEAD_POS_KEY, head_pos);
 
 	// pose task
 	// const string control_link = "link7";
@@ -83,7 +99,7 @@ int main() {
 	VectorXd q_init_desired(dof);
 
 	// chair pose
-	q_init_desired << 0.454621,-1.599603,1.473881,-0.171505,-0.235412,0.327871,0.210719,-1.404628,1.601027,-0.508144,-0.008615,-0.098502,0.336433,-3.321765,-0.447239,0.059882,-0.036452,0.422319,0.770947,1.522959,-3.299092,-0.266798,-0.112313,-0.106552,0.390400,-0.107298,-0.506217,-0.787140,0.192233,0.269256;
+	q_init_desired << 0.454621, -1.599603, 1.473881, -0.171505, -0.235412, 0.327871, 0.210719, -1.404628, 1.601027, -0.508144, -0.008615, -0.098502, 0.336433, -3.321765, -0.447239, 0.059882, -0.036452, 0.422319, 0.770947, 1.522959, -3.299092, -0.266798, -0.112313, -0.106552, 0.390400, -0.107298, -0.506217, -0.787140, 0.192233, 0.269256;
 	// q_init_desired *= M_PI/180.0;
 	joint_task->_desired_position = q_init_desired;
 
@@ -98,23 +114,27 @@ int main() {
 	// add to read callback
 	redis_client.addEigenToReadCallback(0, JOINT_ANGLES_KEY, robot->_q);
 	redis_client.addEigenToReadCallback(0, JOINT_VELOCITIES_KEY, robot->_dq);
+	redis_client.addEigenToReadCallback(0, HUMAN_JOINT_ANGLES_KEY, human->_q);
+	redis_client.addEigenToReadCallback(0, HUMAN_JOINT_VELOCITIES_KEY, human->_dq);
 
 	// add to write callback
 	redis_client.addStringToWriteCallback(0, CONTROLLER_RUNNING_KEY, controller_status);
 	redis_client.addEigenToWriteCallback(0, JOINT_TORQUES_COMMANDED_KEY, command_torques);
+	redis_client.addEigenToWriteCallback(0, HUMAN_JOINT_TORQUES_COMMANDED_KEY, human_command_torques);
 
 	// create a timer
 	LoopTimer timer;
 	timer.initializeTimer();
-	timer.setLoopFrequency(1000); 
-	double start_time = timer.elapsedTime(); //secs
+	timer.setLoopFrequency(1000);
+	double start_time = timer.elapsedTime(); // secs
 	bool fTimerDidSleep = true;
 
 	unsigned long long counter = 0;
 
 	runloop = true;
 
-	while (runloop) {
+	while (runloop)
+	{
 		// wait for next scheduled loop
 		timer.waitForNextLoop();
 		double time = timer.elapsedTime() - start_time;
@@ -124,8 +144,9 @@ int main() {
 
 		// update model
 		robot->updateModel();
-	
-		if (state == POSTURE) {
+
+		if (state == POSTURE)
+		{
 			// update task model and set hierarchy
 			N_prec.setIdentity();
 			joint_task->updateTaskModel(N_prec);
@@ -134,7 +155,8 @@ int main() {
 			joint_task->computeTorques(joint_task_torques);
 			command_torques = joint_task_torques;
 
-			if ( (robot->_q - q_init_desired).norm() < 0.15 ) {
+			if ((robot->_q - q_init_desired).norm() < 0.15)
+			{
 				cout << "Posture To Motion" << endl;
 				joint_task->reInitializeTask();
 				// posori_task->reInitializeTask();
@@ -145,7 +167,9 @@ int main() {
 
 				state = MOTION;
 			}
-		} else if (state == MOTION) {
+		}
+		else if (state == MOTION)
+		{
 			// update task model and set hierarchy
 			N_prec.setIdentity();
 			// posori_task->updateTaskModel(N_prec);
@@ -160,18 +184,18 @@ int main() {
 		}
 
 		// execute redis write callback
-		redis_client.executeWriteCallback(0);	
+		redis_client.executeWriteCallback(0);
 
 		counter++;
 	}
 
 	double end_time = timer.elapsedTime();
-    std::cout << "\n";
-    std::cout << "Controller Loop run time  : " << end_time << " seconds\n";
-    std::cout << "Controller Loop updates   : " << timer.elapsedCycles() << "\n";
-    std::cout << "Controller Loop frequency : " << timer.elapsedCycles()/end_time << "Hz\n";
+	std::cout << "\n";
+	std::cout << "Controller Loop run time  : " << end_time << " seconds\n";
+	std::cout << "Controller Loop updates   : " << timer.elapsedCycles() << "\n";
+	std::cout << "Controller Loop frequency : " << timer.elapsedCycles() / end_time << "Hz\n";
 
-	redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, 0 * command_torques);  // back to floating
+	redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, 0 * command_torques); // back to floating
 
 	return 0;
 }

@@ -9,6 +9,8 @@
 #include "redis/RedisClient.h"
 #include "timer/LoopTimer.h"
 
+#include <map>
+
 #include <iostream>
 #include <string>
 
@@ -26,11 +28,20 @@ void sighandler(int){runloop = false;}
 // Location of URDF files specifying world and robot information
 const string robot_file = "./resources/stanbot.urdf";
 
+const int CHAIR_POSE = 1;
+const int TREE = 2;
+const int WARRIOR_1 = 3;
+const int WARRIOR_2 = 4;
+
+
 enum State 
 {
 	POSTURE = 0, 
 	MOTION
 };
+
+
+
 
 int main() {
 
@@ -80,10 +91,12 @@ int main() {
 	joint_task->_kp = 400.0;
 	joint_task->_kv = 40.0;
 
-	VectorXd q_init_desired(dof);
+	VectorXd q_init_desired = robot->_q;
 
 	// chair pose
-	q_init_desired << 0.454621,-1.599603,1.473881,-0.171505,-0.235412,0.327871,0.210719,-1.404628,1.599603,-0.508144,-0.008615,-0.098502,0.336433,-3.321765,-0.447239,0.059882,-0.036452,0.422319,0.770947,1.522959,-3.299092,-0.266798,-0.112313,-0.106552,0.390400,-0.107298,-0.506217,-0.787140,0.192233,0.269256;
+
+	// q_init_desired << 0.454621,-1.599603,1.404628,-0.210719,-0.327871,0.327871,0.210719,-1.404628,1.599603,-0.508144,-0.008615,-0.098502,0.0,-3.299092,-0.266798,-0.112313,-0.036452,0.422319,0.770947,1.522959,-3.299092,-0.266798,-0.112313,-0.106552,0.390400,-0.107298,-0.506217,-0.787140,0.192233,0.269256;
+	// q_init_desired << pose_angles["chair"];
 	// q_init_desired *= M_PI/180.0;
 	joint_task->_desired_position = q_init_desired;
 
@@ -110,6 +123,19 @@ int main() {
 	double start_time = timer.elapsedTime(); //secs
 	bool fTimerDidSleep = true;
 
+	// initialize pose descriptions
+	VectorXd chair = VectorXd::Zero(dof);
+	chair << 0.5,-1.5,1.4,0.0,0.0,0.0,0.0,-1.4,1.5,-0.5,0.0,0.0,0.0,0.0,0.0,-3.0,0.0,0.0,0.0,0.0,0.0,0.0,-3.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0;
+
+	VectorXd tree = VectorXd::Zero(dof);
+	tree <<  0.0,0.0,0.0,0.0,0.0,1.5,0.0,-0.85,1.9,0.5,0.0,0.0,0.0,0.0,0.0,-3.0,0.1,1.5,-0.6125,0.125,0.0,-1.5,-3.0,-0.1,-1.5,-0.6125,0.125,0.0,1.5,0.0,0.0,0.0;
+
+	VectorXd warrior_1 = VectorXd::Zero(dof);
+	warrior_1 << 0.0,-1.3,1.5,0.0,0.0,0.0,0.0,0.6,0.2,-1.0,0.0,0.0,0.0,0.0,0.0,-3.0,0.0,0.0,0.0,0.0,0.0,0.0,-3.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0;
+
+	VectorXd warrior_2 = VectorXd::Zero(dof);
+	warrior_2 << 0.0,-1.3,1.5,0.0,1.5,-1.5,0.0,0.6,0.2,-1.0,0.0,1.0,0.2,0.0,0.0,-1.5,1.5,1.5,0.0,0.0,0.0,0.0,-1.5,-1.5,-1.5,0.0,0.0,0.0,0.0,0.0,0.0,-1.5;
+
 	unsigned long long counter = 0;
 
 	runloop = true;
@@ -124,9 +150,17 @@ int main() {
 
 		// get user selected pose
 		// int current_pose = redis_client.get("PoseSelection");
-		int current_pose = 1;
-		// cout << "current pose: " << current_pose << endl;
-		
+		int current_pose = 4;
+		if (current_pose == CHAIR_POSE) {
+			joint_task->_desired_position = chair;
+		} else if (current_pose == TREE){
+			joint_task->_desired_position = tree;
+		} else if (current_pose == WARRIOR_1){
+			joint_task->_desired_position = warrior_1;
+		} else if (current_pose == WARRIOR_2){
+			joint_task->_desired_position = warrior_2;
+		}
+
 
 		// update model
 		robot->updateModel();

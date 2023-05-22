@@ -29,7 +29,15 @@ const std::string HEAD_POS_KEY = "kinect::pos::head";
 const string robot_file = "./resources/stanbot.urdf";
 const string human_file = "./resources/human.urdf";
 
-enum State
+const int CHAIR_POSE = 1;
+const int TREE = 2;
+const int WARRIOR_1 = 3;
+const int WARRIOR_2 = 4;
+const int WARRIOR_3 = 5;
+// const int TRIANGLE = 6;
+
+
+enum State 
 {
 	POSTURE = 0,
 	MOTION
@@ -96,7 +104,7 @@ int main()
 	joint_task->_kp = 400.0;
 	joint_task->_kv = 40.0;
 
-	VectorXd q_init_desired(dof);
+	VectorXd q_init_desired = robot->_q;
 
 	// chair pose
 	q_init_desired << 0.454621, -1.599603, 1.473881, -0.171505, -0.235412, 0.327871, 0.210719, -1.404628, 1.601027, -0.508144, -0.008615, -0.098502, 0.336433, -3.321765, -0.447239, 0.059882, -0.036452, 0.422319, 0.770947, 1.522959, -3.299092, -0.266798, -0.112313, -0.106552, 0.390400, -0.107298, -0.506217, -0.787140, 0.192233, 0.269256;
@@ -129,6 +137,25 @@ int main()
 	double start_time = timer.elapsedTime(); // secs
 	bool fTimerDidSleep = true;
 
+	// initialize pose descriptions
+	VectorXd chair = VectorXd::Zero(dof);
+	chair << 0.5,-1.5,1.4,0.0,0.0,0.0,0.0,-1.4,1.5,-0.5,0.0,0.0,0.0,0.0,0.0,-3.0,0.0,0.0,0.0,0.0,0.0,0.0,-3.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0;
+
+	VectorXd tree = VectorXd::Zero(dof);
+	tree <<  0.0,0.0,0.0,0.0,0.0,1.5,0.0,-0.85,1.9,0.5,0.0,0.0,0.0,0.0,0.0,-3.0,0.1,1.5,-0.6125,0.125,0.0,-1.5,-3.0,-0.1,-1.5,-0.6125,0.125,0.0,1.5,0.0,0.0,0.0;
+
+	VectorXd warrior_1 = VectorXd::Zero(dof);
+	warrior_1 << 0.0,-1.3,1.5,0.0,0.0,0.0,0.0,0.6,0.2,-1.0,0.0,0.0,0.0,0.0,0.0,-3.0,0.0,0.0,0.0,0.0,0.0,0.0,-3.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0;
+
+	VectorXd warrior_2 = VectorXd::Zero(dof);
+	warrior_2 << 0.0,-1.3,1.5,0.0,1.5,-1.5,0.0,0.6,0.2,-1.0,0.0,1.0,0.2,0.0,0.0,-1.5,1.5,1.5,0.0,0.0,0.0,0.0,-1.5,-1.5,-1.5,0.0,0.0,0.0,0.0,0.0,0.0,-1.5;
+
+	VectorXd warrior_3 = VectorXd::Zero(dof);
+	warrior_3 <<  0.0,-0.2,1.4,0.0,0.0,0.0,0.0,0.5,0.0,1.,0.0,0.0,0.0,0.0,0.0,-3.0,0.0,0.0,0.0,0.0,0.0,0.0,-3.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0;
+
+	// VectorXd triangle = VectorXd::Zero(dof);
+	// triangle <<  -0.65,0.0,0.9,0.0,1.5,-1.5,0.0,0.35,0.0,-0.5,0.0,1.0,0.0,0.0,0.0,-1.5,1.5,1.5,0.0,0.0,0.0,0.0,-1.5,-1.5,-1.5,0.0,0.0,0.0,0.0,0.0,0.0,0.0;
+
 	unsigned long long counter = 0;
 
 	runloop = true;
@@ -141,6 +168,22 @@ int main()
 
 		// execute redis read callback
 		redis_client.executeReadCallback(0);
+
+		// get user selected pose
+		// int current_pose = redis_client.get("PoseSelection");
+		int current_pose = 5;
+		if (current_pose == CHAIR_POSE) {
+			joint_task->_desired_position = chair;
+		} else if (current_pose == TREE){
+			joint_task->_desired_position = tree;
+		} else if (current_pose == WARRIOR_1){
+			joint_task->_desired_position = warrior_1;
+		} else if (current_pose == WARRIOR_2){
+			joint_task->_desired_position = warrior_2;
+		} else if (current_pose == WARRIOR_3){
+			joint_task->_desired_position = warrior_3;
+		}
+
 
 		// update model
 		robot->updateModel();

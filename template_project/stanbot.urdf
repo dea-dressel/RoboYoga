@@ -91,6 +91,22 @@
       </visual> -->
     </link>
 
+    <link name="hip_ry">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <mass value="1e-10" />
+        <inertia ixx="1e-10" iyy="1e-10" izz="1e-10" ixy="0" ixz="0" iyz="0" />
+      </inertial>
+    </link>
+
+    <link name="hip_rz">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <mass value="1e-10" />
+        <inertia ixx="1e-10" iyy="1e-10" izz="1e-10" ixy="0" ixz="0" iyz="0" />
+      </inertial>
+    </link>
+
     <link name="chest">
       <inertial>
         <origin xyz="0 0 0.2" rpy="0 0 0" />
@@ -615,15 +631,38 @@
     </joint>
 
     <!-- Hip To Chest -->
-    <joint name="waist" type="revolute">
-      <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-0.0175" soft_upper_limit="3.7525"/>
-      <origin rpy="0 0 0" xyz="0.06 0 0.2"/>
+
+    <joint name="waist_1" type="revolute">
+      <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-0.0175" soft_upper_limit="1.0"/>
+      <origin rpy="0 0 0" xyz="0.0 0 0.2"/>
       <parent link="hip"/>
+      <child link="hip_ry"/>
+      <axis xyz="0 1 0"/>
+      <calibration falling="80.0" />
+      <limit effort="12" lower="-0.0175" upper="3.7525" velocity="2.6100"/>
+    </joint>
+
+    <joint name="waist_2" type="revolute">
+      <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-0.0175" soft_upper_limit="3.7525"/>
+      <origin rpy="0 0 0" xyz="0.06 0 0.0"/>
+      <parent link="hip_ry"/>
+      <child link="hip_rz"/>
+      <axis xyz="0 0 1"/>
+      <calibration falling="80.0" />
+      <limit effort="12" lower="-0.0175" upper="3.7525" velocity="2.6100"/>
+    </joint>
+
+    <joint name="waist_3" type="revolute">
+      <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-0.0175" soft_upper_limit="3.7525"/>
+      <origin rpy="0 0 0" xyz="0.0 0 0.0"/>
+      <parent link="hip_rz"/>
       <child link="chest"/>
       <axis xyz="1 0 0"/>
       <calibration falling="80.0" />
       <limit effort="12" lower="-0.0175" upper="3.7525" velocity="2.6100"/>
     </joint>
+
+    
 
     <!-- Right Arm -->
     <joint name="right_shoulder_1" type="revolute">

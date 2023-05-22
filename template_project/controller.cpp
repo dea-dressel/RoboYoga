@@ -30,6 +30,8 @@ const int CHAIR_POSE = 1;
 const int TREE = 2;
 const int WARRIOR_1 = 3;
 const int WARRIOR_2 = 4;
+const int WARRIOR_3 = 5;
+// const int TRIANGLE = 6;
 
 
 enum State 
@@ -126,6 +128,12 @@ int main() {
 	VectorXd warrior_2 = VectorXd::Zero(dof);
 	warrior_2 << 0.0,-1.3,1.5,0.0,1.5,-1.5,0.0,0.6,0.2,-1.0,0.0,1.0,0.2,0.0,0.0,-1.5,1.5,1.5,0.0,0.0,0.0,0.0,-1.5,-1.5,-1.5,0.0,0.0,0.0,0.0,0.0,0.0,-1.5;
 
+	VectorXd warrior_3 = VectorXd::Zero(dof);
+	warrior_3 <<  0.0,-0.2,1.4,0.0,0.0,0.0,0.0,0.5,0.0,1.,0.0,0.0,0.0,0.0,0.0,-3.0,0.0,0.0,0.0,0.0,0.0,0.0,-3.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0;
+
+	// VectorXd triangle = VectorXd::Zero(dof);
+	// triangle <<  -0.65,0.0,0.9,0.0,1.5,-1.5,0.0,0.35,0.0,-0.5,0.0,1.0,0.0,0.0,0.0,-1.5,1.5,1.5,0.0,0.0,0.0,0.0,-1.5,-1.5,-1.5,0.0,0.0,0.0,0.0,0.0,0.0,0.0;
+
 	unsigned long long counter = 0;
 
 	runloop = true;
@@ -140,7 +148,7 @@ int main() {
 
 		// get user selected pose
 		// int current_pose = redis_client.get("PoseSelection");
-		int current_pose = 4;
+		int current_pose = 5;
 		if (current_pose == CHAIR_POSE) {
 			joint_task->_desired_position = chair;
 		} else if (current_pose == TREE){
@@ -149,6 +157,8 @@ int main() {
 			joint_task->_desired_position = warrior_1;
 		} else if (current_pose == WARRIOR_2){
 			joint_task->_desired_position = warrior_2;
+		} else if (current_pose == WARRIOR_3){
+			joint_task->_desired_position = warrior_3;
 		}
 
 

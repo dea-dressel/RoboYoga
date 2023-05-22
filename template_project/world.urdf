@@ -4,7 +4,7 @@
 
 	<robot name="stanbot">
 		<model dir="./resources" path="stanbot.urdf" name="stanbot" />
-		<origin xyz="0.0 0.3 0.0" rpy="0 0 0" />
+		<origin xyz="0.0 0.0 0.01" rpy="0 0 0" />
 	</robot>
 
 	<light name="light1" type="directional">
@@ -23,7 +23,7 @@
 		<lookat xyz="0.0 0.3 1.0" />
 	</camera>
 
-	<static_object name="Base">
+	<!-- <static_object name="Base">
 		<origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
 	    <visual>
 	        <origin xyz="0.0 0.0 -0.00635" rpy="0 0 0" />
@@ -40,31 +40,77 @@
 	            <box size="5 5 0.0127" />
 	        </geometry>
 	    </collision>
-	</static_object>
+	</static_object> -->
 
-	<static_object name="BackWall">
-		<origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+	<static_object name="woodFloor">
+		<origin xyz="0.0 0.0 0.0" rpy="1.5757 0 1.5757" />
 	    <visual>
-	        <origin xyz="0.0 2.5 2.5" rpy="0 0 0" />
-	        <geometry>
-				<box size="5 0.0127 5" />
+	        <origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+	            <mesh filename="../../model/objects/meshes/wood_floor_03.obj" />
 	        </geometry>
-	        <material name="material">
-		        <color rgba="0.94 0.94 0.76 1.0" />
-	        </material>
 	    </visual>
-		<collision>
-	        <origin xyz="0.0 2.5 2.5" rpy="0 0 0" />
+	    <collision>
+	        <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
 	        <geometry>
-	            <box size="5 0.0127 5" />
+	            <box size="5.0 5.0 5.0" />
 	        </geometry>
 	    </collision>
 	</static_object>
 
+	<static_object name="backWall">
+		<origin xyz="0.0 2.48 2.48" rpy="3.1415 0 0" />
+	    <visual>
+	        <origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+	            <mesh filename="../../model/objects/meshes/back_wall.obj" />
+	        </geometry>
+	    </visual>
+	    <collision>
+	        <origin xyz="0.0 2.48 2.48" rpy="0 0 0" />
+	        <geometry>
+	            <box size="5.0 5.0 5.0" />
+	        </geometry>
+	    </collision>
+	</static_object>
+
+	<static_object name="leftWall">
+		<origin xyz="-2.48 0.0 2.48" rpy="3.1415 0 1.5757" />
+	    <visual>
+	        <origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+	            <mesh filename="../../model/objects/meshes/side_wall.obj" />
+	        </geometry>
+	    </visual>
+	    <collision>
+	        <origin xyz="-2.48 0.0 2.48" rpy="0 0 1.5757" />
+	        <geometry>
+	            <box size="5.0 5.0 5.0" />
+	        </geometry>
+	    </collision>
+	</static_object>
+
+	<static_object name="rightWall">
+		<origin xyz="2.48 0.0 2.48" rpy="3.1415 0 -1.5757" />
+	    <visual>
+	        <origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+	            <mesh filename="../../model/objects/meshes/side_wall.obj" />
+	        </geometry>
+	    </visual>
+	    <collision>
+	        <origin xyz="2.48 0.0 2.48" rpy="0 0 1.5757" />
+	        <geometry>
+	            <box size="5.0 5.0 5.0" />
+	        </geometry>
+	    </collision>
+	</static_object>
+
+
 	<static_object name="LeftWall">
 		<origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
 	    <visual>
-	        <origin xyz="-2.5 0 2.5" rpy="0 0 0" />
+	        <origin xyz="-2.48 0 2.48" rpy="0 0 0" />
 	        <geometry>
 				<box size="0.0127 5 5" />
 	        </geometry>
@@ -73,7 +119,7 @@
 	        </material>
 	    </visual>
 		<collision>
-	        <origin xyz="-2.5 0 2.5" rpy="0 0 0" />
+	        <origin xyz="-2.48 0 2.48" rpy="0 0 0" />
 	        <geometry>
 	            <box size="0.0127 5 5" />
 	        </geometry>
@@ -83,7 +129,7 @@
 	<static_object name="RightWall">
 		<origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
 	    <visual>
-	        <origin xyz="2.5 0 2.5" rpy="0 0 0" />
+	        <origin xyz="2.48 0 2.48" rpy="0 0 0" />
 	        <geometry>
 				<box size="0.0127 5 5" />
 	        </geometry>
@@ -92,90 +138,153 @@
 	        </material>
 	    </visual>
 		<collision>
-	        <origin xyz="2.5 0 2.5" rpy="0 0 0" />
+	        <origin xyz="2.48 0 2.48" rpy="0 0 0" />
 	        <geometry>
 	            <box size="0.0127 5 5" />
 	        </geometry>
 	    </collision>
 	</static_object>
 
-	<!-- Begin tyler just messing around -->
+	<!-- Decorative Objects -->
 
 	<static_object name="ball">
-		<origin xyz="2.0 0.0 0.5" rpy="0 0 0" />
+		<origin xyz="2.0 2.0 0.375" rpy="0 0 0" />
 	    <visual>
 	        <origin xyz="0 0 0" rpy="0 0 0" />
 			<geometry>
-	            <mesh filename="../../model/objects/meshes/yoga_ball_02.obj" />
+	            <mesh filename="../../model/objects/meshes/yoga_ball_03.obj" />
 	        </geometry>
 	    </visual>
-
-		<visual>
-	        <origin xyz="2.0 0.0 0.5" rpy="0 0 0" />
-	        <geometry>
-	            <box size="0.1 0.1 0.1" />
-	        </geometry>
-	        <material name="material">
-		        <color rgba="1 1 1 1.0" />
-	        </material>
-	    </visual>
-
 	    <collision>
-	        <origin xyz="2.0 0.0 0.5" rpy="0 0 0" />
+	        <origin xyz="2.0 2.0 0.375" rpy="0 0 0" />
 	        <geometry>
 	            <box size="0.1 0.1 0.1" />
 	        </geometry>
 	    </collision>
 	</static_object>
 
-	<!-- <static_object name="mat">
-		<origin xyz="1.0 0.0 1.0" rpy="0 0 0" />
+	<static_object name="mat1">
+		<origin xyz="-0.75 0.0 0.01" rpy="0 0 0" />
 	    <visual>
 	        <origin xyz="0 0 0" rpy="0 0 0" />
 			<geometry>
-	            <mesh filename="../../model/objects/meshes/yoga_mat_01.obj" />
+	            <mesh filename="../../model/objects/meshes/yoga_mat_02.obj" />
 	        </geometry>
 	    </visual>
-
-		<visual>
-	        <origin xyz="1.0 0.0 1.0" rpy="0 0 0" />
-	        <geometry>
-	            <box size="0.1 0.1 0.1" />
-	        </geometry>
-	        <material name="material">
-		        <color rgba="1 1 1 1.0" />
-	        </material>
-	    </visual>
-
 	    <collision>
-	        <origin xyz="1.0 0.0 1.0" rpy="0 0 0" />
+	        <origin xyz="-0.75 0.0 0.01" rpy="0 0 0" />
 	        <geometry>
 	            <box size="0.1 0.1 0.1" />
 	        </geometry>
 	    </collision>
-	</static_object> -->
+	</static_object>
 
-	<static_object name="block">
-		<origin xyz="-2.0 -2.0 0.1" rpy="0 0 0" />
+	<static_object name="mat2">
+		<origin xyz="0.75 0.0 0.01" rpy="0 0 0" />
 	    <visual>
 	        <origin xyz="0 0 0" rpy="0 0 0" />
 			<geometry>
-	            <mesh filename="../../model/objects/meshes/yoga_block_01.obj" />
+	            <mesh filename="../../model/objects/meshes/yoga_mat_02.obj" />
 	        </geometry>
 	    </visual>
-
-		<visual>
-	        <origin xyz="-2.0 -2.0 0.1" rpy="0 0 0" />
+	    <collision>
+	        <origin xyz="0.75 0.0 0.01" rpy="0 0 0" />
 	        <geometry>
 	            <box size="0.1 0.1 0.1" />
 	        </geometry>
-	        <material name="material">
-		        <color rgba="1 1 1 1.0" />
-	        </material>
-	    </visual>
+	    </collision>
+	</static_object>
 
+	<static_object name="block1">
+		<origin xyz="2.2 0.0 0.05" rpy="0 0 1.57" />
+	    <visual>
+	        <origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+	            <mesh filename="../../model/objects/meshes/yoga_block_02.obj" />
+	        </geometry>
+	    </visual>
 	    <collision>
-	        <origin xyz="-2.0 -2.0 0.1" rpy="0 0 0" />
+	        <origin xyz="2.2 0.0 0.05" rpy="1.57 0 0" />
+	        <geometry>
+	            <box size="0.1 0.1 0.1" />
+	        </geometry>
+	    </collision>
+	</static_object>
+
+	<static_object name="block2">
+		<origin xyz="2.2 -0.3 0.05" rpy="0 0 1.57" />
+	    <visual>
+	        <origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+	            <mesh filename="../../model/objects/meshes/yoga_block_02.obj" />
+	        </geometry>
+	    </visual>
+	    <collision>
+	        <origin xyz="2.2 -0.3 0.05" rpy="1.57 0 0" />
+	        <geometry>
+	            <box size="0.1 0.1 0.1" />
+	        </geometry>
+	    </collision>
+	</static_object>
+
+	<static_object name="block3">
+		<origin xyz="2.2 -0.6 0.05" rpy="0 0 1.57" />
+	    <visual>
+	        <origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+	            <mesh filename="../../model/objects/meshes/yoga_block_02.obj" />
+	        </geometry>
+	    </visual>
+	    <collision>
+	        <origin xyz="2.2 -0.6 0.05" rpy="1.57 0 0" />
+	        <geometry>
+	            <box size="0.1 0.1 0.1" />
+	        </geometry>
+	    </collision>
+	</static_object>
+
+	<static_object name="block4">
+		<origin xyz="2.2 -0.15 0.15" rpy="0 0 1.57" />
+	    <visual>
+	        <origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+	            <mesh filename="../../model/objects/meshes/yoga_block_02.obj" />
+	        </geometry>
+	    </visual>
+	    <collision>
+	        <origin xyz="2.2 -0.15 0.15" rpy="1.57 0 0" />
+	        <geometry>
+	            <box size="0.1 0.1 0.1" />
+	        </geometry>
+	    </collision>
+	</static_object>
+
+	<static_object name="block5">
+		<origin xyz="2.2 -0.45 0.15" rpy="0 0 1.57" />
+	    <visual>
+	        <origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+	            <mesh filename="../../model/objects/meshes/yoga_block_02.obj" />
+	        </geometry>
+	    </visual>
+	    <collision>
+	        <origin xyz="2.2 -0.45 0.15" rpy="1.57 0 0" />
+	        <geometry>
+	            <box size="0.1 0.1 0.1" />
+	        </geometry>
+	    </collision>
+	</static_object>
+
+	<static_object name="block6">
+		<origin xyz="2.2 -0.3 0.25" rpy="0 0 1.57" />
+	    <visual>
+	        <origin xyz="0 0 0" rpy="0 0 0" />
+			<geometry>
+	            <mesh filename="../../model/objects/meshes/yoga_block_02.obj" />
+	        </geometry>
+	    </visual>
+	    <collision>
+	        <origin xyz="2.2 -0.3 0.25" rpy="1.57 0 0" />
 	        <geometry>
 	            <box size="0.1 0.1 0.1" />
 	        </geometry>
@@ -183,26 +292,15 @@
 	</static_object>
 
 	<static_object name="blanket">
-		<origin xyz="-1.0 0.0 0.2" rpy="1.57 0 0" />
+		<origin xyz="-1.2 2.0 0.0" rpy="1.57 0 1.57" />
 	    <visual>
 	        <origin xyz="0 0 0" rpy="0 0 0" />
 			<geometry>
-	            <mesh filename="../../model/objects/meshes/blanket_01.obj" />
+	            <mesh filename="../../model/objects/meshes/blanket_02.obj" />
 	        </geometry>
 	    </visual>
-
-		<visual>
-	        <origin xyz="-1.0 0.0 0.2" rpy="0 0 0" />
-	        <geometry>
-	            <box size="0.1 0.1 0.1" />
-	        </geometry>
-	        <material name="material">
-		        <color rgba="1 1 1 1.0" />
-	        </material>
-	    </visual>
-
 	    <collision>
-	        <origin xyz="-1.0 0.0 0.2" rpy="0 0 0" />
+	        <origin xyz="-1.2 2.0 0.0" rpy="0 0 0" />
 	        <geometry>
 	            <box size="0.1 0.1 0.1" />
 	        </geometry>
@@ -210,24 +308,13 @@
 	</static_object>
 
 	<static_object name="vase">
-		<origin xyz="2.0 2.0 0.5" rpy="0 0 0" />
+		<origin xyz="-2.0 2.0 0.5" rpy="0 0 0" />
 	    <visual>
 	        <origin xyz="0 0 0" rpy="0 0 0" />
 			<geometry>
-	            <mesh filename="../../model/objects/meshes/vase_01.obj" />
+	            <mesh filename="../../model/objects/meshes/vase_02.obj" />
 	        </geometry>
 	    </visual>
-
-		<visual>
-	        <origin xyz="2.0 2.0 0.5" rpy="0 0 0" />
-	        <geometry>
-	            <box size="0.1 0.1 0.1" />
-	        </geometry>
-	        <material name="material">
-		        <color rgba="1 1 1 1.0" />
-	        </material>
-	    </visual>
-
 	    <collision>
 	        <origin xyz="2.0 2.0 0.5"rpy="0 0 0" />
 	        <geometry>
@@ -235,7 +322,5 @@
 	        </geometry>
 	    </collision>
 	</static_object>
-
-	<!-- End tyler just messing around -->
 
 </world>

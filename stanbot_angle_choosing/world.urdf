@@ -57,7 +57,7 @@
 
 	<!-- Begin tyler just messing around -->
 
-	<static_object name="ball">
+	<!-- <static_object name="ball">
 		<origin xyz="1.0 0.0 1.0" rpy="0 0 0" />
 	    <visual>
 	        <origin xyz="0 0 0" rpy="0 0 0" />
@@ -190,7 +190,7 @@
 	            <box size="0.1 0.1 0.1" />
 	        </geometry>
 	    </collision>
-	</static_object>
+	</static_object> -->
 
 	<!-- End tyler just messing around -->
 

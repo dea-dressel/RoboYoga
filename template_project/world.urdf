@@ -63,7 +63,7 @@
 	    <visual>
 	        <origin xyz="0 0 0" rpy="0 0 0" />
 			<geometry>
-	            <mesh filename="../../model/objects/meshes/back_wall.obj" />
+	            <mesh filename="../../model/objects/meshes/back_wall_03.obj" />
 	        </geometry>
 	    </visual>
 	    <collision>
@@ -79,7 +79,7 @@
 	    <visual>
 	        <origin xyz="0 0 0" rpy="0 0 0" />
 			<geometry>
-	            <mesh filename="../../model/objects/meshes/side_wall.obj" />
+	            <mesh filename="../../model/objects/meshes/side_wall_03.obj" />
 	        </geometry>
 	    </visual>
 	    <collision>
@@ -95,7 +95,7 @@
 	    <visual>
 	        <origin xyz="0 0 0" rpy="0 0 0" />
 			<geometry>
-	            <mesh filename="../../model/objects/meshes/side_wall.obj" />
+	            <mesh filename="../../model/objects/meshes/side_wall_03.obj" />
 	        </geometry>
 	    </visual>
 	    <collision>

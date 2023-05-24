@@ -16,6 +16,8 @@
 
 bool fSimulationRunning = false;
 void sighandler(int) { fSimulationRunning = false; }
+bool fSimulationLoopDone = false;
+bool fControllerLoopDone = false;
 
 #include "redis_keys.h"
 
@@ -34,7 +36,13 @@ const string camera_name = "camera_fixed";
 RedisClient redis_client;
 
 // simulation thread
-void simulation(Sai2Model::Sai2Model *robot, Simulation::Sai2Simulation *sim);
+void simulation(Sai2Model::Sai2Model *robot, Sai2Model::Sai2Model *human, Simulation::Sai2Simulation *sim);
+
+// function for converting string to bool
+bool string_to_bool(const std::string& x);
+
+// function for converting bool to string
+inline const char * const bool_to_string(bool b);
 
 // callback to print glfw errors
 void glfwError(int error, const char *description);
@@ -66,6 +74,7 @@ int main()
 	redis_client = RedisClient();
 	redis_client.connect();
 
+
 	// set up signal handler
 	signal(SIGABRT, &sighandler);
 	signal(SIGTERM, &sighandler);
@@ -91,8 +100,8 @@ int main()
 	sim->setJointPositions(robot_name, robot->_q);
 	sim->setJointVelocities(robot_name, robot->_dq);
 
-	sim->setJointPositions(human_name, robot->_q);
-	sim->setJointVelocities(human_name, robot->_dq);
+	sim->setJointPositions(human_name, human->_q);
+	sim->setJointVelocities(human_name, human->_dq);
 
 	// set co-efficient of restition to zero for force control
 	sim->setCollisionRestitution(0.0);
@@ -141,9 +150,11 @@ int main()
 	redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY, robot->_dq);
 	redis_client.setEigenMatrixJSON(HUMAN_JOINT_ANGLES_KEY, human->_q);
 	redis_client.setEigenMatrixJSON(HUMAN_JOINT_VELOCITIES_KEY, human->_dq);
+	redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
+    redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
 	
 	// start simulation thread
-	thread sim_thread(simulation, robot, sim);
+	thread sim_thread(simulation, robot, human, sim);
 
 	// initialize glew
 	glewInitialize();
@@ -158,6 +169,7 @@ int main()
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
 		graphics->updateGraphics(robot_name, robot);
+		graphics->updateGraphics(human_name, human);
 		graphics->render(camera_name, width, height);
 
 		// swap buffers
@@ -244,7 +256,9 @@ int main()
 
 	// wait for simulation to finish
 	fSimulationRunning = false;
-	sim_thread.join();
+    fSimulationLoopDone = false;
+    redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
+    sim_thread.join();
 
 	// destroy context
 	glfwDestroyWindow(window);
@@ -257,13 +271,19 @@ int main()
 
 //------------------------------------------------------------------------------
 
-void simulation(Sai2Model::Sai2Model *robot, Simulation::Sai2Simulation *sim)
+void simulation(Sai2Model::Sai2Model *robot, Sai2Model::Sai2Model *human, Simulation::Sai2Simulation *sim)
 {
 	// prepare simulation
 	int dof = robot->dof();
 	VectorXd command_torques = VectorXd::Zero(dof);
 	redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, command_torques);
 	VectorXd g = VectorXd::Zero(dof);
+
+	int human_dof = human->dof();
+	VectorXd human_command_torques = VectorXd::Zero(human_dof);
+	redis_client.setEigenMatrixJSON(HUMAN_JOINT_TORQUES_COMMANDED_KEY, human_command_torques);
+	VectorXd human_g = VectorXd::Zero(human_dof);
+
 	string controller_status = "0";
 	double kv = 10; // can be set to 0 if no damping is needed
 
@@ -274,10 +294,13 @@ void simulation(Sai2Model::Sai2Model *robot, Simulation::Sai2Simulation *sim)
 	// add to read callback
 	redis_client.addStringToReadCallback(0, CONTROLLER_RUNNING_KEY, controller_status);
 	redis_client.addEigenToReadCallback(0, JOINT_TORQUES_COMMANDED_KEY, command_torques);
+	redis_client.addEigenToReadCallback(0, HUMAN_JOINT_TORQUES_COMMANDED_KEY, human_command_torques);
 
 	// add to write callback
 	redis_client.addEigenToWriteCallback(0, JOINT_ANGLES_KEY, robot->_q);
 	redis_client.addEigenToWriteCallback(0, JOINT_VELOCITIES_KEY, robot->_dq);
+	redis_client.addEigenToWriteCallback(0, HUMAN_JOINT_ANGLES_KEY, human->_q);
+	redis_client.addEigenToWriteCallback(0, HUMAN_JOINT_VELOCITIES_KEY, human->_dq);
 
 	// create a timer
 	LoopTimer timer;
@@ -291,39 +314,62 @@ void simulation(Sai2Model::Sai2Model *robot, Simulation::Sai2Simulation *sim)
 	fSimulationRunning = true;
 	while (fSimulationRunning)
 	{
-		fTimerDidSleep = timer.waitForNextLoop();
+		// fTimerDidSleep = timer.waitForNextLoop(); // commented out to let current simulation loop finish before next loop
 
-		// execute redis read callback
-		redis_client.executeReadCallback(0);
+		// run simulation loop when control loop is done
+		if(fControllerLoopDone) {
+			// execute redis read callback
+			redis_client.executeReadCallback(0);
 
-		// apply gravity compensation
-		robot->gravityVector(g);
+			// apply gravity compensation
+			robot->gravityVector(g);
+			human->gravityVector(human_g);
 
-		// set joint torques
-		if (controller_status == "1")
-		{
-			sim->setJointTorques(robot_name, command_torques + g);
+			// set joint torques
+			if (controller_status == "1")
+			{
+				sim->setJointTorques(robot_name, command_torques + g - robot->_M * (kv * robot->_dq));
+				sim->setJointTorques(human_name, human_command_torques + human_g - human->_M * (kv * human->_dq));
+			}
+			else
+			{
+				sim->setJointTorques(robot_name, g - robot->_M * (kv * robot->_dq));
+				sim->setJointTorques(human_name, human_g - human->_M * (kv * human->_dq));
+			}
+
+			// integrate forward
+			double curr_time = timer.elapsedTime();
+			double loop_dt = curr_time - last_time;
+			// sim->integrate(loop_dt);
+			sim->integrate(0.001);
+
+			// read joint positions, velocities, update model
+			sim->getJointPositions(robot_name, robot->_q);
+			sim->getJointVelocities(robot_name, robot->_dq);
+			robot->updateModel();
+
+			sim->getJointPositions(human_name, human->_q);
+			sim->getJointVelocities(human_name, human->_dq);
+			human->updateModel();
+
+			// simulation loop is done
+            fSimulationLoopDone = true;
+
+            // ask for next control loop
+            fControllerLoopDone = false;
+
+			// execute redis write callback
+			redis_client.executeWriteCallback(0);
+			redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
+			// redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
+
+			// update last time
+			last_time = curr_time;
 		}
-		else
-		{
-			sim->setJointTorques(robot_name, g - robot->_M * (kv * robot->_dq));
-		}
 
-		// integrate forward
-		double curr_time = timer.elapsedTime();
-		double loop_dt = curr_time - last_time;
-		sim->integrate(loop_dt);
-
-		// read joint positions, velocities, update model
-		sim->getJointPositions(robot_name, robot->_q);
-		sim->getJointVelocities(robot_name, robot->_dq);
-		robot->updateModel();
-
-		// execute redis write callback
-		redis_client.executeWriteCallback(0);
-
-		// update last time
-		last_time = curr_time;
+		// read controller state
+        fControllerLoopDone = string_to_bool(redis_client.get(CONTROLLER_LOOP_DONE_KEY));
+		
 	}
 
 	double end_time = timer.elapsedTime();
@@ -331,6 +377,20 @@ void simulation(Sai2Model::Sai2Model *robot, Simulation::Sai2Simulation *sim)
 	std::cout << "Simulation Loop run time  : " << end_time << " seconds\n";
 	std::cout << "Simulation Loop updates   : " << timer.elapsedCycles() << "\n";
 	std::cout << "Simulation Loop frequency : " << timer.elapsedCycles() / end_time << "Hz\n";
+}
+
+//------------------------------------------------------------------------------
+
+bool string_to_bool(const std::string& x) {
+    assert(x == "false" || x == "true");
+    return x == "true";
+}
+
+//------------------------------------------------------------------------------
+
+inline const char * const bool_to_string(bool b)
+{
+    return b ? "true" : "false";
 }
 
 //------------------------------------------------------------------------------

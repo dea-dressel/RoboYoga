@@ -3,6 +3,14 @@
  * @brief Contains all redis keys for simulation and control.
  * 
  */
+const std::string POSE_SELECTION_KEY = "pose::selection";
+const std::string INITIALIZED_KEY = "initialized";
+
+const std::string INIT_LEFT_FOOT_POS_KEY = "init::pos::left_foot";
+const std::string INIT_RIGHT_HAND_POS_KEY = "init::pos::right_hand";
+const std::string INIT_LEFT_HAND_POS_KEY = "init::pos::left_hand";
+const std::string INIT_HEAD_POS_KEY = "init::pos::head";
+const std::string INIT_CHEST_POS_KEY = "init::pos::chest";
 
 const std::string JOINT_ANGLES_KEY = "sai2::sim::stanbot::sensors::q";
 const std::string JOINT_VELOCITIES_KEY = "sai2::sim::stanbot::sensors::dq";
@@ -42,3 +50,4 @@ const std::string NAVAL_POS_KEY = "kinect::pos::spine_naval";
 const std::string NAVAL_ORI_KEY = "kinect::ori::spine_naval";
 const std::string CHEST_POS_KEY = "kinect::pos::spine_chest";
 const std::string CHEST_ORI_KEY = "kinect::ori::spine_chest";
+

@@ -34,15 +34,17 @@ const string camera_name = "camera_fixed";
 
 // redis client
 RedisClient redis_client;
+RedisClient redis_client2;
+RedisClient redis_client_graphics;
 
 // simulation thread
 void simulation(Sai2Model::Sai2Model *robot, Sai2Model::Sai2Model *human, Simulation::Sai2Simulation *sim);
 
 // function for converting string to bool
-bool string_to_bool(const std::string& x);
+bool string_to_bool(const std::string &x);
 
 // function for converting bool to string
-inline const char * const bool_to_string(bool b);
+inline const char *const bool_to_string(bool b);
 
 // callback to print glfw errors
 void glfwError(int error, const char *description);
@@ -74,6 +76,11 @@ int main()
 	redis_client = RedisClient();
 	redis_client.connect();
 
+	redis_client_graphics = RedisClient();
+	redis_client_graphics.connect();
+
+	redis_client2 = RedisClient();
+	redis_client2.connect("192.168.1.70");
 
 	// set up signal handler
 	signal(SIGABRT, &sighandler);
@@ -146,13 +153,14 @@ int main()
 
 	// init redis client values
 	redis_client.set(CONTROLLER_RUNNING_KEY, "0");
+	redis_client.set(INITIALIZED_KEY, bool_to_string(false));
 	redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEY, robot->_q);
 	redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY, robot->_dq);
 	redis_client.setEigenMatrixJSON(HUMAN_JOINT_ANGLES_KEY, human->_q);
 	redis_client.setEigenMatrixJSON(HUMAN_JOINT_VELOCITIES_KEY, human->_dq);
 	redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
-    redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
-	
+	redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
+
 	// start simulation thread
 	thread sim_thread(simulation, robot, human, sim);
 
@@ -256,9 +264,9 @@ int main()
 
 	// wait for simulation to finish
 	fSimulationRunning = false;
-    fSimulationLoopDone = false;
-    redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
-    sim_thread.join();
+	fSimulationLoopDone = false;
+	redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
+	sim_thread.join();
 
 	// destroy context
 	glfwDestroyWindow(window);
@@ -317,7 +325,8 @@ void simulation(Sai2Model::Sai2Model *robot, Sai2Model::Sai2Model *human, Simula
 		// fTimerDidSleep = timer.waitForNextLoop(); // commented out to let current simulation loop finish before next loop
 
 		// run simulation loop when control loop is done
-		if(fControllerLoopDone) {
+		if (fControllerLoopDone)
+		{
 			// execute redis read callback
 			redis_client.executeReadCallback(0);
 
@@ -330,6 +339,8 @@ void simulation(Sai2Model::Sai2Model *robot, Sai2Model::Sai2Model *human, Simula
 			{
 				sim->setJointTorques(robot_name, command_torques + g - robot->_M * (kv * robot->_dq));
 				sim->setJointTorques(human_name, human_command_torques + human_g - human->_M * (kv * human->_dq));
+				// sim->setJointTorques(robot_name, command_torques - robot->_M * (kv * robot->_dq));
+				// sim->setJointTorques(human_name, human_command_torques - human->_M * (kv * human->_dq));
 			}
 			else
 			{
@@ -353,10 +364,10 @@ void simulation(Sai2Model::Sai2Model *robot, Sai2Model::Sai2Model *human, Simula
 			human->updateModel();
 
 			// simulation loop is done
-            fSimulationLoopDone = true;
+			fSimulationLoopDone = true;
 
-            // ask for next control loop
-            fControllerLoopDone = false;
+			// ask for next control loop
+			fControllerLoopDone = false;
 
 			// execute redis write callback
 			redis_client.executeWriteCallback(0);
@@ -368,8 +379,7 @@ void simulation(Sai2Model::Sai2Model *robot, Sai2Model::Sai2Model *human, Simula
 		}
 
 		// read controller state
-        fControllerLoopDone = string_to_bool(redis_client.get(CONTROLLER_LOOP_DONE_KEY));
-		
+		fControllerLoopDone = string_to_bool(redis_client.get(CONTROLLER_LOOP_DONE_KEY));
 	}
 
 	double end_time = timer.elapsedTime();
@@ -381,16 +391,17 @@ void simulation(Sai2Model::Sai2Model *robot, Sai2Model::Sai2Model *human, Simula
 
 //------------------------------------------------------------------------------
 
-bool string_to_bool(const std::string& x) {
-    assert(x == "false" || x == "true");
-    return x == "true";
+bool string_to_bool(const std::string &x)
+{
+	assert(x == "false" || x == "true");
+	return x == "true";
 }
 
 //------------------------------------------------------------------------------
 
-inline const char * const bool_to_string(bool b)
+inline const char *const bool_to_string(bool b)
 {
-    return b ? "true" : "false";
+	return b ? "true" : "false";
 }
 
 //------------------------------------------------------------------------------
@@ -450,6 +461,14 @@ void keySelect(GLFWwindow *window, int key, int scancode, int action, int mods)
 		break;
 	case GLFW_KEY_Z:
 		fTransZn = set;
+		break;
+	case GLFW_KEY_I:
+		redis_client_graphics.set(INITIALIZED_KEY, bool_to_string(true));
+		redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_FOOT_POS_KEY, redis_client2.getEigenMatrixJSON(LEFT_FOOT_POS_KEY));
+		redis_client_graphics.setEigenMatrixJSON(INIT_RIGHT_HAND_POS_KEY, redis_client2.getEigenMatrixJSON(RIGHT_HAND_POS_KEY));
+		redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_HAND_POS_KEY, redis_client2.getEigenMatrixJSON(LEFT_HAND_POS_KEY));
+		redis_client_graphics.setEigenMatrixJSON(INIT_HEAD_POS_KEY, redis_client2.getEigenMatrixJSON(HEAD_POS_KEY));
+		redis_client_graphics.setEigenMatrixJSON(INIT_CHEST_POS_KEY, redis_client2.getEigenMatrixJSON(CHEST_POS_KEY));
 		break;
 	default:
 		break;

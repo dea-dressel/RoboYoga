@@ -1,7 +1,7 @@
 /**
  * @file simviz.cpp
  * @brief Simulation an visualization of panda robot
- * 
+ *
  */
 
 #include <GL/glew.h>
@@ -11,40 +11,52 @@
 #include <dynamics3d.h>
 #include "redis/RedisClient.h"
 #include "timer/LoopTimer.h"
-#include <GLFW/glfw3.h>  // must be loaded after loading opengl/glew
+#include <GLFW/glfw3.h> // must be loaded after loading opengl/glew
 #include <signal.h>
 
 bool fSimulationRunning = false;
-void sighandler(int){fSimulationRunning = false;}
+void sighandler(int) { fSimulationRunning = false; }
+bool fSimulationLoopDone = false;
+bool fControllerLoopDone = false;
 
 #include "redis_keys.h"
 
 using namespace std;
 using namespace Eigen;
 
-// specify urdf and robots 
+// specify urdf and robots
 const string world_file = "./resources/world.urdf";
 const string robot_file = "./resources/stanbot.urdf";
 const string robot_name = "stanbot";
+const string human_file = "./resources/human.urdf";
+const string human_name = "human";
 const string camera_name = "camera_fixed";
 
-// redis client 
-RedisClient redis_client; 
+// redis client
+RedisClient redis_client;
+RedisClient redis_client2;
+RedisClient redis_client_graphics;
 
 // simulation thread
-void simulation(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim);
+void simulation(Sai2Model::Sai2Model *robot, Sai2Model::Sai2Model *human, Simulation::Sai2Simulation *sim);
+
+// function for converting string to bool
+bool string_to_bool(const std::string &x);
+
+// function for converting bool to string
+inline const char *const bool_to_string(bool b);
 
 // callback to print glfw errors
-void glfwError(int error, const char* description);
+void glfwError(int error, const char *description);
 
 // callback to print glew errors
 bool glewInitialize();
 
 // callback when a key is pressed
-void keySelect(GLFWwindow* window, int key, int scancode, int action, int mods);
+void keySelect(GLFWwindow *window, int key, int scancode, int action, int mods);
 
 // callback when a mouse button is pressed
-void mouseClick(GLFWwindow* window, int button, int action, int mods);
+void mouseClick(GLFWwindow *window, int button, int action, int mods);
 
 // flags for scene camera movement
 bool fTransXp = false;
@@ -56,12 +68,19 @@ bool fTransZn = false;
 bool fRotPanTilt = false;
 bool fRobotLinkSelect = false;
 
-int main() {
+int main()
+{
 	cout << "Loading URDF world model file: " << world_file << endl;
 
 	// start redis client
 	redis_client = RedisClient();
 	redis_client.connect();
+
+	redis_client_graphics = RedisClient();
+	redis_client_graphics.connect();
+
+	redis_client2 = RedisClient();
+	redis_client2.connect("192.168.1.70");
 
 	// set up signal handler
 	signal(SIGABRT, &sighandler);
@@ -72,27 +91,31 @@ int main() {
 	auto graphics = new Sai2Graphics::Sai2Graphics(world_file, true);
 	Eigen::Vector3d camera_pos, camera_lookat, camera_vertical;
 	graphics->getCameraPose(camera_name, camera_pos, camera_vertical, camera_lookat);
-	graphics->_world->setBackgroundColor(66.0/255, 135.0/255, 245.0/255);  // set blue background 	
-	graphics->getCamera(camera_name)->setClippingPlanes(0.1, 50);  // set the near and far clipping planes 
+	graphics->_world->setBackgroundColor(66.0 / 255, 135.0 / 255, 245.0 / 255); // set blue background
+	graphics->getCamera(camera_name)->setClippingPlanes(0.1, 50);				// set the near and far clipping planes
 
 	// load robots
 	auto robot = new Sai2Model::Sai2Model(robot_file, false);
+	auto human = new Sai2Model::Sai2Model(human_file, false);
 	// robot->_q = VectorXd::Zero(7);
 	// robot->_dq = VectorXd::Zero(7);
 	robot->updateModel();
+	human->updateModel();
 
 	// load simulation world
 	auto sim = new Simulation::Sai2Simulation(world_file, false);
 	sim->setJointPositions(robot_name, robot->_q);
 	sim->setJointVelocities(robot_name, robot->_dq);
 
+	sim->setJointPositions(human_name, human->_q);
+	sim->setJointVelocities(human_name, human->_dq);
 
-    // set co-efficient of restition to zero for force control
-    sim->setCollisionRestitution(0.0);
+	// set co-efficient of restition to zero for force control
+	sim->setCollisionRestitution(0.0);
 
-    // set co-efficient of friction
-    sim->setCoeffFrictionStatic(0.0);
-    sim->setCoeffFrictionDynamic(0.0);
+	// set co-efficient of friction
+	sim->setCoeffFrictionStatic(0.0);
+	sim->setCoeffFrictionDynamic(0.0);
 
 	/*------- Set up visualization -------*/
 	// set up error callback
@@ -102,8 +125,8 @@ int main() {
 	glfwInit();
 
 	// retrieve resolution of computer display and position window accordingly
-	GLFWmonitor* primary = glfwGetPrimaryMonitor();
-	const GLFWvidmode* mode = glfwGetVideoMode(primary);
+	GLFWmonitor *primary = glfwGetPrimaryMonitor();
+	const GLFWvidmode *mode = glfwGetVideoMode(primary);
 
 	// information about computer screen and GLUT display window
 	int screenW = mode->width;
@@ -115,7 +138,7 @@ int main() {
 
 	// create window and make it current
 	glfwWindowHint(GLFW_VISIBLE, 0);
-	GLFWwindow* window = glfwCreateWindow(windowW, windowH, "Panda Example", NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(windowW, windowH, "Robo Yoga", NULL, NULL);
 	glfwSetWindowPos(window, windowPosX, windowPosY);
 	glfwShowWindow(window);
 	glfwMakeContextCurrent(window);
@@ -128,13 +151,18 @@ int main() {
 	// cache variables
 	double last_cursorx, last_cursory;
 
-	// init redis client values 
-	redis_client.set(CONTROLLER_RUNNING_KEY, "0");  
-	redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEY, robot->_q); 
-	redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY, robot->_dq); 
+	// init redis client values
+	redis_client.set(CONTROLLER_RUNNING_KEY, "0");
+	redis_client.set(INITIALIZED_KEY, bool_to_string(false));
+	redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEY, robot->_q);
+	redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY, robot->_dq);
+	redis_client.setEigenMatrixJSON(HUMAN_JOINT_ANGLES_KEY, human->_q);
+	redis_client.setEigenMatrixJSON(HUMAN_JOINT_VELOCITIES_KEY, human->_dq);
+	redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
+	redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
 
 	// start simulation thread
-	thread sim_thread(simulation, robot, sim);
+	thread sim_thread(simulation, robot, human, sim);
 
 	// initialize glew
 	glewInitialize();
@@ -148,7 +176,8 @@ int main() {
 		// update graphics. this automatically waits for the correct amount of time
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
-		graphics->updateGraphics(robot_name, robot); 
+		graphics->updateGraphics(robot_name, robot);
+		graphics->updateGraphics(human_name, human);
 		graphics->render(camera_name, width, height);
 
 		// swap buffers
@@ -173,59 +202,70 @@ int main() {
 		Eigen::Vector3d cam_up_axis;
 		// cam_up_axis = camera_vertical;
 		// cam_up_axis.normalize();
-		cam_up_axis << 0.0, 0.0, 1.0; //TODO: there might be a better way to do this
+		cam_up_axis << 0.0, 0.0, 1.0; // TODO: there might be a better way to do this
 		Eigen::Vector3d cam_roll_axis = (camera_lookat - camera_pos).cross(cam_up_axis);
 		cam_roll_axis.normalize();
 		Eigen::Vector3d cam_lookat_axis = camera_lookat;
 		cam_lookat_axis.normalize();
 
-		if (fTransXp) {
-			camera_pos = camera_pos + 0.05*cam_roll_axis;
-			camera_lookat = camera_lookat + 0.05*cam_roll_axis;
+		if (fTransXp)
+		{
+			camera_pos = camera_pos + 0.05 * cam_roll_axis;
+			camera_lookat = camera_lookat + 0.05 * cam_roll_axis;
 		}
-		if (fTransXn) {
-			camera_pos = camera_pos - 0.05*cam_roll_axis;
-			camera_lookat = camera_lookat - 0.05*cam_roll_axis;
+		if (fTransXn)
+		{
+			camera_pos = camera_pos - 0.05 * cam_roll_axis;
+			camera_lookat = camera_lookat - 0.05 * cam_roll_axis;
 		}
-		if (fTransYp) {
+		if (fTransYp)
+		{
 			// camera_pos = camera_pos + 0.05*cam_lookat_axis;
-			camera_pos = camera_pos + 0.05*cam_up_axis;
-			camera_lookat = camera_lookat + 0.05*cam_up_axis;
+			camera_pos = camera_pos + 0.05 * cam_up_axis;
+			camera_lookat = camera_lookat + 0.05 * cam_up_axis;
 		}
-		if (fTransYn) {
+		if (fTransYn)
+		{
 			// camera_pos = camera_pos - 0.05*cam_lookat_axis;
-			camera_pos = camera_pos - 0.05*cam_up_axis;
-			camera_lookat = camera_lookat - 0.05*cam_up_axis;
+			camera_pos = camera_pos - 0.05 * cam_up_axis;
+			camera_lookat = camera_lookat - 0.05 * cam_up_axis;
 		}
-		if (fTransZp) {
-			camera_pos = camera_pos + 0.1*cam_depth_axis;
-			camera_lookat = camera_lookat + 0.1*cam_depth_axis;
-		}	    
-		if (fTransZn) {
-			camera_pos = camera_pos - 0.1*cam_depth_axis;
-			camera_lookat = camera_lookat - 0.1*cam_depth_axis;
+		if (fTransZp)
+		{
+			camera_pos = camera_pos + 0.1 * cam_depth_axis;
+			camera_lookat = camera_lookat + 0.1 * cam_depth_axis;
 		}
-		if (fRotPanTilt) {
+		if (fTransZn)
+		{
+			camera_pos = camera_pos - 0.1 * cam_depth_axis;
+			camera_lookat = camera_lookat - 0.1 * cam_depth_axis;
+		}
+		if (fRotPanTilt)
+		{
 			// get current cursor position
 			double cursorx, cursory;
 			glfwGetCursorPos(window, &cursorx, &cursory);
-			//TODO: might need to re-scale from screen units to physical units
-			double compass = 0.006*(cursorx - last_cursorx);
-			double azimuth = 0.006*(cursory - last_cursory);
+			// TODO: might need to re-scale from screen units to physical units
+			double compass = 0.006 * (cursorx - last_cursorx);
+			double azimuth = 0.006 * (cursory - last_cursory);
 			double radius = (camera_pos - camera_lookat).norm();
-			Eigen::Matrix3d m_tilt; m_tilt = Eigen::AngleAxisd(azimuth, -cam_roll_axis);
-			camera_pos = camera_lookat + m_tilt*(camera_pos - camera_lookat);
-			Eigen::Matrix3d m_pan; m_pan = Eigen::AngleAxisd(compass, -cam_up_axis);
-			camera_pos = camera_lookat + m_pan*(camera_pos - camera_lookat);
+			Eigen::Matrix3d m_tilt;
+			m_tilt = Eigen::AngleAxisd(azimuth, -cam_roll_axis);
+			camera_pos = camera_lookat + m_tilt * (camera_pos - camera_lookat);
+			Eigen::Matrix3d m_pan;
+			m_pan = Eigen::AngleAxisd(compass, -cam_up_axis);
+			camera_pos = camera_lookat + m_pan * (camera_pos - camera_lookat);
 		}
 		graphics->setCameraPose(camera_name, camera_pos, cam_up_axis, camera_lookat);
 		glfwGetCursorPos(window, &last_cursorx, &last_cursory);
-		
+
 		count++;
 	}
 
 	// wait for simulation to finish
 	fSimulationRunning = false;
+	fSimulationLoopDone = false;
+	redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
 	sim_thread.join();
 
 	// destroy context
@@ -239,15 +279,21 @@ int main() {
 
 //------------------------------------------------------------------------------
 
-void simulation(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim)
+void simulation(Sai2Model::Sai2Model *robot, Sai2Model::Sai2Model *human, Simulation::Sai2Simulation *sim)
 {
 	// prepare simulation
 	int dof = robot->dof();
 	VectorXd command_torques = VectorXd::Zero(dof);
 	redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, command_torques);
 	VectorXd g = VectorXd::Zero(dof);
+
+	int human_dof = human->dof();
+	VectorXd human_command_torques = VectorXd::Zero(human_dof);
+	redis_client.setEigenMatrixJSON(HUMAN_JOINT_TORQUES_COMMANDED_KEY, human_command_torques);
+	VectorXd human_g = VectorXd::Zero(human_dof);
+
 	string controller_status = "0";
-	double kv = 10;  // can be set to 0 if no damping is needed
+	double kv = 10; // can be set to 0 if no damping is needed
 
 	// setup redis callback
 	redis_client.createReadCallback(0);
@@ -256,146 +302,208 @@ void simulation(Sai2Model::Sai2Model* robot, Simulation::Sai2Simulation* sim)
 	// add to read callback
 	redis_client.addStringToReadCallback(0, CONTROLLER_RUNNING_KEY, controller_status);
 	redis_client.addEigenToReadCallback(0, JOINT_TORQUES_COMMANDED_KEY, command_torques);
+	redis_client.addEigenToReadCallback(0, HUMAN_JOINT_TORQUES_COMMANDED_KEY, human_command_torques);
 
 	// add to write callback
 	redis_client.addEigenToWriteCallback(0, JOINT_ANGLES_KEY, robot->_q);
 	redis_client.addEigenToWriteCallback(0, JOINT_VELOCITIES_KEY, robot->_dq);
+	redis_client.addEigenToWriteCallback(0, HUMAN_JOINT_ANGLES_KEY, human->_q);
+	redis_client.addEigenToWriteCallback(0, HUMAN_JOINT_VELOCITIES_KEY, human->_dq);
 
 	// create a timer
 	LoopTimer timer;
 	timer.initializeTimer();
-	timer.setLoopFrequency(1000); 
+	timer.setLoopFrequency(1000);
 	bool fTimerDidSleep = true;
 	double start_time = timer.elapsedTime();
 	double last_time = start_time;
 
-	// start simulation 
-	fSimulationRunning = true;	
-	while (fSimulationRunning) {
-		fTimerDidSleep = timer.waitForNextLoop();
+	// start simulation
+	fSimulationRunning = true;
+	while (fSimulationRunning)
+	{
+		// fTimerDidSleep = timer.waitForNextLoop(); // commented out to let current simulation loop finish before next loop
 
-		// execute redis read callback
-		redis_client.executeReadCallback(0);
+		// run simulation loop when control loop is done
+		if (fControllerLoopDone)
+		{
+			// execute redis read callback
+			redis_client.executeReadCallback(0);
 
-		// apply gravity compensation 
-		robot->gravityVector(g);
+			// apply gravity compensation
+			robot->gravityVector(g);
+			human->gravityVector(human_g);
 
-		// set joint torques
-		if (controller_status == "1") {
-			sim->setJointTorques(robot_name, command_torques + g);
-		} else {
-			sim->setJointTorques(robot_name, g - robot->_M * (kv * robot->_dq));
+			// set joint torques
+			if (controller_status == "1")
+			{
+				// sim->setJointTorques(robot_name, command_torques + g - robot->_M * (kv * robot->_dq));
+				// sim->setJointTorques(human_name, human_command_torques + human_g - human->_M * (kv * human->_dq));
+				sim->setJointTorques(robot_name, command_torques - robot->_M * (kv * robot->_dq));
+				sim->setJointTorques(human_name, human_command_torques - human->_M * (kv * human->_dq));
+			}
+			else
+			{
+				// sim->setJointTorques(robot_name, g - robot->_M * (kv * robot->_dq));
+				// sim->setJointTorques(human_name, human_g - human->_M * (kv * human->_dq));
+				sim->setJointTorques(robot_name, - robot->_M * (kv * robot->_dq));
+				sim->setJointTorques(human_name, - human->_M * (kv * human->_dq));
+			}
+
+			// integrate forward
+			double curr_time = timer.elapsedTime();
+			double loop_dt = curr_time - last_time;
+			// sim->integrate(loop_dt);
+			sim->integrate(0.001);
+
+			// read joint positions, velocities, update model
+			sim->getJointPositions(robot_name, robot->_q);
+			sim->getJointVelocities(robot_name, robot->_dq);
+			robot->updateModel();
+
+			sim->getJointPositions(human_name, human->_q);
+			sim->getJointVelocities(human_name, human->_dq);
+			human->updateModel();
+
+			// simulation loop is done
+			fSimulationLoopDone = true;
+
+			// ask for next control loop
+			fControllerLoopDone = false;
+
+			// execute redis write callback
+			redis_client.executeWriteCallback(0);
+			redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
+			// redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
+
+			// update last time
+			last_time = curr_time;
 		}
 
-		// integrate forward
-		double curr_time = timer.elapsedTime();
-		double loop_dt = curr_time - last_time; 
-		sim->integrate(loop_dt);
-
-		// read joint positions, velocities, update model
-		sim->getJointPositions(robot_name, robot->_q);
-		sim->getJointVelocities(robot_name, robot->_dq);
-		robot->updateModel();
-
-		// execute redis write callback
-		redis_client.executeWriteCallback(0);		
-
-		// update last time
-		last_time = curr_time;
+		// read controller state
+		fControllerLoopDone = string_to_bool(redis_client.get(CONTROLLER_LOOP_DONE_KEY));
 	}
 
 	double end_time = timer.elapsedTime();
 	std::cout << "\n";
 	std::cout << "Simulation Loop run time  : " << end_time << " seconds\n";
 	std::cout << "Simulation Loop updates   : " << timer.elapsedCycles() << "\n";
-	std::cout << "Simulation Loop frequency : " << timer.elapsedCycles()/end_time << "Hz\n";
-
+	std::cout << "Simulation Loop frequency : " << timer.elapsedCycles() / end_time << "Hz\n";
 }
-
 
 //------------------------------------------------------------------------------
 
-void glfwError(int error, const char* description) {
+bool string_to_bool(const std::string &x)
+{
+	assert(x == "false" || x == "true");
+	return x == "true";
+}
+
+//------------------------------------------------------------------------------
+
+inline const char *const bool_to_string(bool b)
+{
+	return b ? "true" : "false";
+}
+
+//------------------------------------------------------------------------------
+
+void glfwError(int error, const char *description)
+{
 	cerr << "GLFW Error: " << description << endl;
 	exit(1);
 }
 
 //------------------------------------------------------------------------------
 
-bool glewInitialize() {
+bool glewInitialize()
+{
 	bool ret = false;
-	#ifdef GLEW_VERSION
-	if (glewInit() != GLEW_OK) {
+#ifdef GLEW_VERSION
+	if (glewInit() != GLEW_OK)
+	{
 		cout << "Failed to initialize GLEW library" << endl;
 		cout << glewGetErrorString(ret) << endl;
 		glfwTerminate();
-	} else {
+	}
+	else
+	{
 		ret = true;
 	}
-	#endif
+#endif
 	return ret;
 }
 
 //------------------------------------------------------------------------------
 
-void keySelect(GLFWwindow* window, int key, int scancode, int action, int mods)
+void keySelect(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
 	bool set = (action != GLFW_RELEASE);
-	switch(key) {
-		case GLFW_KEY_ESCAPE:
-			// exit application
-			fSimulationRunning = false;
-			glfwSetWindowShouldClose(window, GL_TRUE);
-			break;
-		case GLFW_KEY_RIGHT:
-			fTransXp = set;
-			break;
-		case GLFW_KEY_LEFT:
-			fTransXn = set;
-			break;
-		case GLFW_KEY_UP:
-			fTransYp = set;
-			break;
-		case GLFW_KEY_DOWN:
-			fTransYn = set;
-			break;
-		case GLFW_KEY_A:
-			fTransZp = set;
-			break;
-		case GLFW_KEY_Z:
-			fTransZn = set;
-			break;
-		default:
-			break;
+	switch (key)
+	{
+	case GLFW_KEY_ESCAPE:
+		// exit application
+		fSimulationRunning = false;
+		glfwSetWindowShouldClose(window, GL_TRUE);
+		break;
+	case GLFW_KEY_RIGHT:
+		fTransXp = set;
+		break;
+	case GLFW_KEY_LEFT:
+		fTransXn = set;
+		break;
+	case GLFW_KEY_UP:
+		fTransYp = set;
+		break;
+	case GLFW_KEY_DOWN:
+		fTransYn = set;
+		break;
+	case GLFW_KEY_A:
+		fTransZp = set;
+		break;
+	case GLFW_KEY_Z:
+		fTransZn = set;
+		break;
+	case GLFW_KEY_I:
+		redis_client_graphics.set(INITIALIZED_KEY, bool_to_string(true));
+		redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_FOOT_POS_KEY, redis_client2.getEigenMatrixJSON(LEFT_FOOT_POS_KEY));
+		redis_client_graphics.setEigenMatrixJSON(INIT_RIGHT_HAND_POS_KEY, redis_client2.getEigenMatrixJSON(RIGHT_HAND_POS_KEY));
+		redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_HAND_POS_KEY, redis_client2.getEigenMatrixJSON(LEFT_HAND_POS_KEY));
+		redis_client_graphics.setEigenMatrixJSON(INIT_HEAD_POS_KEY, redis_client2.getEigenMatrixJSON(HEAD_POS_KEY));
+		redis_client_graphics.setEigenMatrixJSON(INIT_CHEST_POS_KEY, redis_client2.getEigenMatrixJSON(CHEST_POS_KEY));
+		break;
+	default:
+		break;
 	}
 }
 
 //------------------------------------------------------------------------------
 
-void mouseClick(GLFWwindow* window, int button, int action, int mods) {
+void mouseClick(GLFWwindow *window, int button, int action, int mods)
+{
 	bool set = (action != GLFW_RELEASE);
-	//TODO: mouse interaction with robot
-	switch (button) {
-		// left click pans and tilts
-		case GLFW_MOUSE_BUTTON_LEFT:
-			fRotPanTilt = set;
-			// NOTE: the code below is recommended but doesn't work well
-			// if (fRotPanTilt) {
-			// 	// lock cursor
-			// 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-			// } else {
-			// 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-			// }
-			break;
-		// if right click: don't handle. this is for menu selection
-		case GLFW_MOUSE_BUTTON_RIGHT:
-			fRobotLinkSelect = set;
-			break;
-		// if middle click: don't handle. doesn't work well on laptops
-		case GLFW_MOUSE_BUTTON_MIDDLE:
-			break;
-		default:
-			break;
+	// TODO: mouse interaction with robot
+	switch (button)
+	{
+	// left click pans and tilts
+	case GLFW_MOUSE_BUTTON_LEFT:
+		fRotPanTilt = set;
+		// NOTE: the code below is recommended but doesn't work well
+		// if (fRotPanTilt) {
+		// 	// lock cursor
+		// 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		// } else {
+		// 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		// }
+		break;
+	// if right click: don't handle. this is for menu selection
+	case GLFW_MOUSE_BUTTON_RIGHT:
+		fRobotLinkSelect = set;
+		break;
+	// if middle click: don't handle. doesn't work well on laptops
+	case GLFW_MOUSE_BUTTON_MIDDLE:
+		break;
+	default:
+		break;
 	}
 }
-

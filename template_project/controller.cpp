@@ -193,22 +193,28 @@ int main()
 
 	// pose task for left foot
 	control_link = "left_foot";
-	auto posori_task_left_foot = new Sai2Primitives::PosOriTask(human, control_link, control_point);
+	// auto posori_task_left_foot = new Sai2Primitives::PosOriTask(human, control_link, control_point);
+	auto pos_task_left_foot = new Sai2Primitives::PositionTask(human, control_link, control_point);
 
-	posori_task_left_foot->_use_interpolation_flag = false;
-	posori_task_left_foot->_use_velocity_saturation_flag = false;
+	// posori_task_left_foot->_use_interpolation_flag = false;
+	// posori_task_left_foot->_use_velocity_saturation_flag = false;
 	human->positionInWorld(init_left_foot_pos, control_link, control_point);
-	posori_task_left_foot->_desired_position = init_left_foot_pos;
+	// posori_task_left_foot->_desired_position = init_left_foot_pos;
+	pos_task_left_foot->_desired_position = init_left_foot_pos;
 	/**********************CHECK IMPLEMENTATION**********************************/
 	// old_left_foot_pos = redis_client2.getEigenMatrixJSON(LEFT_FOOT_POS_KEY);
 	// posori_task_left_foot->_desired_position = kinect_to_world * old_left_foot_pos;
 	/********************************************************************/
 
-	VectorXd posori_task_torques_left_foot = VectorXd::Zero(human_dof);
-	posori_task_left_foot->_kp_pos = 400.0;
-	posori_task_left_foot->_kv_pos = 40.0;
-	posori_task_left_foot->_kp_ori = 400.0;
-	posori_task_left_foot->_kv_ori = 40.0;
+	// VectorXd posori_task_torques_left_foot = VectorXd::Zero(human_dof);
+	// posori_task_left_foot->_kp_pos = 400.0;
+	// posori_task_left_foot->_kv_pos = 40.0;
+	// posori_task_left_foot->_kp_ori = 400.0;
+	// posori_task_left_foot->_kv_ori = 40.0;
+
+	VectorXd pos_task_torques_left_foot = VectorXd::Zero(human_dof);
+	pos_task_left_foot->_kp = 400.0;
+	pos_task_left_foot->_kv = 40.0;
 
 	// // pose task for right hand
 	// control_link = "right_hand";
@@ -261,7 +267,7 @@ int main()
 	// posori_task_head->_kp_ori = 400.0;
 	// posori_task_head->_kv_ori = 40.0;
 
-	float scale = 0.001;
+	float scale = 0.00005;
 	unsigned long long counter = 0;
 	runloop = true;
 
@@ -349,10 +355,12 @@ int main()
 				// // cout << "xpos" << x_pos << endl;
 				left_foot_pos = redis_client2.getEigenMatrixJSON(LEFT_FOOT_POS_KEY);
 				cout << left_foot_pos << endl;
-				cout << "init" << redis_client.getEigenMatrixJSON(INIT_LEFT_FOOT_POS_KEY) << endl << endl;
+				cout << "init" << redis_client.getEigenMatrixJSON(INIT_LEFT_FOOT_POS_KEY) << endl
+					 << endl;
 				if ((left_foot_pos - old_left_foot_pos).norm() < 2)
 				{
-					posori_task_left_foot->_desired_position = init_left_foot_pos + (kinect_to_world * (left_foot_pos - redis_client.getEigenMatrixJSON(INIT_LEFT_FOOT_POS_KEY))) * scale;
+					// posori_task_left_foot->_desired_position = init_left_foot_pos + (kinect_to_world * (left_foot_pos - redis_client.getEigenMatrixJSON(INIT_LEFT_FOOT_POS_KEY))) * scale;
+					pos_task_left_foot->_desired_position = init_left_foot_pos + (kinect_to_world * (left_foot_pos - redis_client.getEigenMatrixJSON(INIT_LEFT_FOOT_POS_KEY))) * scale;
 				}
 				// posori_task_left_foot->_desired_orientation = x_ori;
 				old_left_foot_pos = left_foot_pos;
@@ -410,8 +418,10 @@ int main()
 
 				// // calculate torques for left foot
 				human_N_prec.setIdentity();
-				posori_task_left_foot->updateTaskModel(human_N_prec);
-				posori_task_left_foot->computeTorques(posori_task_torques_left_foot);
+				// posori_task_left_foot->updateTaskModel(human_N_prec);
+				// posori_task_left_foot->computeTorques(posori_task_torques_left_foot);
+				pos_task_left_foot->updateTaskModel(human_N_prec);
+				pos_task_left_foot->computeTorques(pos_task_torques_left_foot);
 
 				// // // calculate torques to move right hand
 				// // human_N_prec = posori_task_left_foot->_N;
@@ -437,7 +447,8 @@ int main()
 				// // command_torques = posori_task_torques_left_foot + posori_task_torques_right_hand + posori_task_torques_left_hand + posori_task_torques_head + joint_task_torques; // gravity compensation handled in sim
 				// // human_command_torques = posori_task_torques_left_foot + human_joint_task_torques; // gravity compensation handled in sim
 				// // human_command_torques = posori_task_torques_head + human_joint_task_torques; // gravity compensation handled in sim
-				human_command_torques = posori_task_torques_left_foot; // gravity compensation handled in sim
+				// human_command_torques = posori_task_torques_left_foot; // gravity compensation handled in sim
+				human_command_torques = pos_task_torques_left_foot; // gravity compensation handled in sim
 
 				// execute redis write callback
 				redis_client.executeWriteCallback(0);

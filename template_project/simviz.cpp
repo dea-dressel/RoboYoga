@@ -337,15 +337,17 @@ void simulation(Sai2Model::Sai2Model *robot, Sai2Model::Sai2Model *human, Simula
 			// set joint torques
 			if (controller_status == "1")
 			{
-				sim->setJointTorques(robot_name, command_torques + g - robot->_M * (kv * robot->_dq));
-				sim->setJointTorques(human_name, human_command_torques + human_g - human->_M * (kv * human->_dq));
-				// sim->setJointTorques(robot_name, command_torques - robot->_M * (kv * robot->_dq));
-				// sim->setJointTorques(human_name, human_command_torques - human->_M * (kv * human->_dq));
+				// sim->setJointTorques(robot_name, command_torques + g - robot->_M * (kv * robot->_dq));
+				// sim->setJointTorques(human_name, human_command_torques + human_g - human->_M * (kv * human->_dq));
+				sim->setJointTorques(robot_name, command_torques - robot->_M * (kv * robot->_dq));
+				sim->setJointTorques(human_name, human_command_torques - human->_M * (kv * human->_dq));
 			}
 			else
 			{
-				sim->setJointTorques(robot_name, g - robot->_M * (kv * robot->_dq));
-				sim->setJointTorques(human_name, human_g - human->_M * (kv * human->_dq));
+				// sim->setJointTorques(robot_name, g - robot->_M * (kv * robot->_dq));
+				// sim->setJointTorques(human_name, human_g - human->_M * (kv * human->_dq));
+				sim->setJointTorques(robot_name, - robot->_M * (kv * robot->_dq));
+				sim->setJointTorques(human_name, - human->_M * (kv * human->_dq));
 			}
 
 			// integrate forward

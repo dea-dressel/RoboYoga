@@ -119,6 +119,12 @@
           <mesh filename="../../../model/stanbot/meshes/visual/chest_ascii.obj"/>
         </geometry>
       </visual>
+      <visual>
+      <origin xyz="0.0 0.0 -0.04" rpy="0.0 0.0 0.0"/>
+        <geometry>
+          <sphere radius="0.1"/>
+        </geometry>
+      </visual>
     </link>
 
     <link name="left_thigh">

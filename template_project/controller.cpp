@@ -234,6 +234,51 @@ int main()
 		counter++;
 	}
 
+	while (runloop) {
+		// wait for next scheduled loop
+		timer.waitForNextLoop();
+		double time = timer.elapsedTime() - start_time;
+
+		// execute redis read callback
+		redis_client.executeReadCallback(0);
+
+		// update model
+		robot->updateModel();
+	
+		if (state == POSTURE) {
+
+			if ( (robot->_q - q_init_desired).norm() < 0.15 ) {
+				cout << "Posture To Motion" << endl;
+				joint_task->reInitializeTask();
+				// posori_task->reInitializeTask();
+				// robot->position(ee_pos, control_link, control_point);
+				// posori_task->_desired_position = ee_pos - Vector3d(-0.1, -0.1, 0.1);
+				// posori_task->_desired_orientation = AngleAxisd(M_PI/6, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
+				// posori_task->_desired_orientation = AngleAxisd(0.0000000000000001, Vector3d::UnitX()).toRotationMatrix() * posori_task->_desired_orientation;
+
+				state = MOTION;
+			}
+		} else if (state == MOTION) {
+			// update task model and set hierarchy
+			N_prec.setIdentity();
+			posori_task->updateTaskModel(N_prec);
+			// N_prec = posori_task->_N;
+			// joint_task->updateTaskModel(N_prec);
+
+			// compute torques
+			posori_task->computeTorques(posori_task_torques);
+			// joint_task->computeTorques(joint_task_torques);
+			// command_torques = posori_task_torques + joint_task_torques;
+			command_torques = posori_task_torques
+			// command_torques = joint_task_torques;
+		}
+
+		// execute redis write callback
+		redis_client.executeWriteCallback(0);	
+
+		counter++;
+	}
+
 	double end_time = timer.elapsedTime();
 	std::cout << "\n";
 	std::cout << "Controller Loop run time  : " << end_time << " seconds\n";

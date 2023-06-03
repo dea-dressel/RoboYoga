@@ -2,10 +2,10 @@
 
 <world name="demo_world" gravity="0.0 0.0 0.0">
 
-	<robot name="stanbot">
+	<!-- <robot name="stanbot">
 		<model dir="./resources" path="stanbot.urdf" name="stanbot" />
 		<origin xyz="-1.0 -0.75 0.1" rpy="0 0 0" />
-	</robot>
+	</robot> -->
 
 	<robot name="human">
 		<model dir="./resources" path="human.urdf" name="human" />

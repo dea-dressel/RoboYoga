@@ -4,6 +4,7 @@
  * 
  */
 const std::string POSE_SELECTION_KEY = "pose::selection";
+const std::string POSE_COMPLETE_KEY= "pose::complete";
 const std::string INITIALIZED_KEY = "initialized";
 
 const std::string INIT_LEFT_FOOT_POS_KEY = "init::pos::left_foot";
@@ -11,6 +12,14 @@ const std::string INIT_RIGHT_HAND_POS_KEY = "init::pos::right_hand";
 const std::string INIT_LEFT_HAND_POS_KEY = "init::pos::left_hand";
 const std::string INIT_HEAD_POS_KEY = "init::pos::head";
 const std::string INIT_CHEST_POS_KEY = "init::pos::chest";
+const std::string INIT_PELVIS_POS_KEY = "init::pos::pelvis";
+
+const std::string INIT_LEFT_FOOT_ORI_KEY = "init::ori::left_foot";
+const std::string INIT_RIGHT_HAND_ORI_KEY = "init::ori::right_hand";
+const std::string INIT_LEFT_HAND_ORI_KEY = "init::ori::left_hand";
+const std::string INIT_HEAD_ORI_KEY = "init::ori::head";
+const std::string INIT_CHEST_ORI_KEY = "init::ori::chest";
+const std::string INIT_PELVIS_ORI_KEY = "init::ori::pelvis";
 
 const std::string JOINT_ANGLES_KEY = "sai2::sim::stanbot::sensors::q";
 const std::string JOINT_VELOCITIES_KEY = "sai2::sim::stanbot::sensors::dq";
@@ -50,4 +59,6 @@ const std::string NAVAL_POS_KEY = "kinect::pos::spine_naval";
 const std::string NAVAL_ORI_KEY = "kinect::ori::spine_naval";
 const std::string CHEST_POS_KEY = "kinect::pos::spine_chest";
 const std::string CHEST_ORI_KEY = "kinect::ori::spine_chest";
+const std::string PELVIS_POS_KEY = "kinect::pos::pelvis";
+const std::string PELVIS_ORI_KEY = "kinect::ori::pelvis";
 

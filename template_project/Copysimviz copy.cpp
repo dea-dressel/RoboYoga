@@ -31,8 +31,6 @@ const string robot_name = "stanbot";
 const string human_file = "./resources/human.urdf";
 const string human_name = "human";
 const string camera_name = "camera_fixed";
-int count_init = 0;
-bool init = false;
 
 // redis client
 RedisClient redis_client;
@@ -70,11 +68,6 @@ bool fTransZn = false;
 bool fRotPanTilt = false;
 // bool fRobotLinkSelect = false;
 
-// containers to average init positions
-vector<Vector3d> init_pos(6, Vector3d::Zero());
-// vector<Matrix3d> init_ori(6, Matrix3d::Zero());
-int n_init_samples = 50;
-
 int main()
 {
 	cout << "Loading URDF world model file: " << world_file << endl;
@@ -100,7 +93,6 @@ int main()
 	graphics->getCameraPose(camera_name, camera_pos, camera_vertical, camera_lookat);
 	graphics->_world->setBackgroundColor(66.0 / 255, 135.0 / 255, 245.0 / 255); // set blue background
 	graphics->getCamera(camera_name)->setClippingPlanes(0.1, 50);				// set the near and far clipping planes
-	// graphics->showLinkFrame("chest", "human");
 
 	// load robots
 	// auto robot = new Sai2Model::Sai2Model(robot_file, false);
@@ -268,49 +260,6 @@ int main()
 		graphics->setCameraPose(camera_name, camera_pos, cam_up_axis, camera_lookat);
 		glfwGetCursorPos(window, &last_cursorx, &last_cursory);
 
-		if (count_init == n_init_samples && init == true)
-		{
-			// redis_client_graphics.set(INITIALIZED_KEY, bool_to_string(true));
-			// init_pos[0] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(LEFT_FOOT_POS_KEY);
-			// init_pos[1] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(RIGHT_HAND_POS_KEY);
-			// init_pos[2] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(LEFT_HAND_POS_KEY);
-			// init_pos[3] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(HEAD_POS_KEY);
-			// init_pos[4] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(CHEST_POS_KEY);
-			// init_pos[5] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(PELVIS_POS_KEY);
-
-			redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_FOOT_POS_KEY, init_pos[0]);
-			redis_client_graphics.setEigenMatrixJSON(INIT_RIGHT_HAND_POS_KEY, init_pos[1]);
-			redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_HAND_POS_KEY, init_pos[2]);
-			redis_client_graphics.setEigenMatrixJSON(INIT_HEAD_POS_KEY, init_pos[3]);
-			redis_client_graphics.setEigenMatrixJSON(INIT_CHEST_POS_KEY, init_pos[4]);
-			redis_client_graphics.setEigenMatrixJSON(INIT_PELVIS_POS_KEY, init_pos[5]);
-			redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_FOOT_ORI_KEY, redis_client2.getEigenMatrixJSON(LEFT_FOOT_ORI_KEY));
-			redis_client_graphics.setEigenMatrixJSON(INIT_RIGHT_HAND_ORI_KEY, redis_client2.getEigenMatrixJSON(RIGHT_HAND_ORI_KEY));
-			redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_HAND_ORI_KEY, redis_client2.getEigenMatrixJSON(LEFT_HAND_ORI_KEY));
-			redis_client_graphics.setEigenMatrixJSON(INIT_HEAD_ORI_KEY, redis_client2.getEigenMatrixJSON(HEAD_ORI_KEY));
-			redis_client_graphics.setEigenMatrixJSON(INIT_CHEST_ORI_KEY, redis_client2.getEigenMatrixJSON(CHEST_ORI_KEY));
-			redis_client_graphics.setEigenMatrixJSON(INIT_PELVIS_ORI_KEY, redis_client2.getEigenMatrixJSON(PELVIS_ORI_KEY));
-			redis_client_graphics.set(INITIALIZED_KEY, bool_to_string(true));
-			cout << "initialized";
-			init = false;
-		} else if (init) {
-			init_pos[0] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(LEFT_FOOT_POS_KEY);
-			init_pos[1] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(RIGHT_HAND_POS_KEY);
-			init_pos[2] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(LEFT_HAND_POS_KEY);
-			init_pos[3] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(HEAD_POS_KEY);
-			init_pos[4] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(CHEST_POS_KEY);
-			init_pos[5] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(PELVIS_POS_KEY);
-
-			for (auto val : init_pos) {
-				cout << val.transpose() << "\n";
-			}
-			cout << endl;
-		}
-		// cout << count_init << "\n";
-
-		if (init)
-			count_init++;
-
 		count++;
 	}
 
@@ -331,7 +280,7 @@ int main()
 
 //------------------------------------------------------------------------------
 
-// ADD robot into before human
+//ADD robot into before human
 void simulation(Sai2Model::Sai2Model *human, Simulation::Sai2Simulation *sim)
 {
 	// prepare simulation
@@ -400,7 +349,7 @@ void simulation(Sai2Model::Sai2Model *human, Simulation::Sai2Simulation *sim)
 				// sim->setJointTorques(robot_name, g - robot->_M * (kv * robot->_dq));
 				// sim->setJointTorques(human_name, human_g - human->_M * (kv * human->_dq));
 				// sim->setJointTorques(robot_name, - robot->_M * (kv * robot->_dq));
-				sim->setJointTorques(human_name, -human->_M * (kv * human->_dq));
+				sim->setJointTorques(human_name, - human->_M * (kv * human->_dq));
 			}
 
 			// for (auto robot: sim->_world->m_dynamicObjects){
@@ -524,8 +473,12 @@ void keySelect(GLFWwindow *window, int key, int scancode, int action, int mods)
 		fTransZn = set;
 		break;
 	case GLFW_KEY_I:
-		count_init = 0;
-		init = true;
+		redis_client_graphics.set(INITIALIZED_KEY, bool_to_string(true));
+		redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_FOOT_POS_KEY, redis_client2.getEigenMatrixJSON(LEFT_FOOT_POS_KEY));
+		redis_client_graphics.setEigenMatrixJSON(INIT_RIGHT_HAND_POS_KEY, redis_client2.getEigenMatrixJSON(RIGHT_HAND_POS_KEY));
+		redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_HAND_POS_KEY, redis_client2.getEigenMatrixJSON(LEFT_HAND_POS_KEY));
+		redis_client_graphics.setEigenMatrixJSON(INIT_HEAD_POS_KEY, redis_client2.getEigenMatrixJSON(HEAD_POS_KEY));
+		redis_client_graphics.setEigenMatrixJSON(INIT_CHEST_POS_KEY, redis_client2.getEigenMatrixJSON(CHEST_POS_KEY));
 		break;
 	default:
 		break;

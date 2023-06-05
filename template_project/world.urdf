@@ -2,19 +2,15 @@
 
 <world name="demo_world" gravity="0.0 0.0 0.0">
 
-	<!-- <robot name="stanbot">
+	<robot name="stanbot">
 		<model dir="./resources" path="stanbot.urdf" name="stanbot" />
 		<origin xyz="-1.0 -0.75 0.1" rpy="0 0 0" />
-	</robot> -->
+	</robot>
 
 	<robot name="human">
 		<model dir="./resources" path="human.urdf" name="human" />
 		<origin xyz="1.0 -0.75 0.1" rpy="0 0 0" />
 	</robot>
-	<!-- <robot name="human">
-		<model dir="./resources" path="human.urdf" name="human" />
-		<origin xyz="0 0 0" rpy="0 0 0" />
-	</robot> -->
 
 	<light name="light1" type="directional">
 		<position xyz="2.0 -2.0 2.0" />
@@ -163,7 +159,7 @@
 	</static_object>
 
 	<static_object name="mat1">
-		<origin xyz="-1 0.0 0.01" rpy="0 0 0" />
+		<origin xyz="-1.00 0.0 0.01" rpy="0 0 0" />
 		<visual>
 			<origin xyz="0 0 0" rpy="0 0 0" />
 			<geometry>
@@ -173,7 +169,7 @@
 	</static_object>
 
 	<static_object name="mat2">
-		<origin xyz="1.0 0.0 0.01" rpy="0 0 0" />
+		<origin xyz="1.15 0.0 0.01" rpy="0 0 0" />
 		<visual>
 			<origin xyz="0 0 0" rpy="0 0 0" />
 			<geometry>

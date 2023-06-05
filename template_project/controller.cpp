@@ -33,7 +33,7 @@ inline const char *const bool_to_string(bool b);
 #include "redis_keys.h"
 
 // Location of URDF files specifying world and robot information
-// const string robot_file = "./resources/stanbot.urdf";
+const string robot_file = "./resources/stanbot.urdf";
 const string human_file = "./resources/human.urdf";
 
 const int NONE = 0;
@@ -67,12 +67,33 @@ int main()
 	signal(SIGTERM, &sighandler);
 	signal(SIGINT, &sighandler);
 
+	// load robots, read current state and update the model
+	auto robot = new Sai2Model::Sai2Model(robot_file, false);
+	robot->_q = redis_client.getEigenMatrixJSON(JOINT_ANGLES_KEY);
+	robot->_dq = redis_client.getEigenMatrixJSON(JOINT_VELOCITIES_KEY);
+	robot->updateModel();
+
+	int dof = robot->dof();
+	VectorXd command_torques = VectorXd::Zero(dof);
+	MatrixXd N_prec = MatrixXd::Identity(dof, dof);
+
+	// joint task
+	auto joint_task = new Sai2Primitives::JointTask(robot);
+	joint_task->_use_interpolation_flag = false;
+	joint_task->_use_velocity_saturation_flag = false;
+
+	VectorXd joint_task_torques = VectorXd::Zero(dof);
+	joint_task->_kp = 400.0;
+	joint_task->_kv = 40.0;
+
+	VectorXd q_init_desired = robot->_q;
+	joint_task->_desired_position = q_init_desired;
+
 	// add human
 	auto human = new Sai2Model::Sai2Model(human_file, false);
 	human->updateModel();
 
 	// prepare controllers
-	int dof = human->dof();
 
 	int human_dof = human->dof();
 	VectorXd human_command_torques = VectorXd::Zero(human_dof);
@@ -113,6 +134,8 @@ int main()
 	redis_client.createWriteCallback(0);
 
 	// add to read callback
+	redis_client.addEigenToReadCallback(0, JOINT_ANGLES_KEY, robot->_q);
+	redis_client.addEigenToReadCallback(0, JOINT_VELOCITIES_KEY, robot->_dq);
 	redis_client.addEigenToReadCallback(0, HUMAN_JOINT_ANGLES_KEY, human->_q);
 	redis_client.addEigenToReadCallback(0, HUMAN_JOINT_VELOCITIES_KEY, human->_dq);
 	redis_client.addEigenToReadCallback(0, INIT_LEFT_FOOT_POS_KEY, init_kinect_left_foot_pos);
@@ -130,6 +153,7 @@ int main()
 
 	// add to write callback
 	redis_client.addStringToWriteCallback(0, CONTROLLER_RUNNING_KEY, controller_status);
+	redis_client.addEigenToWriteCallback(0, JOINT_TORQUES_COMMANDED_KEY, command_torques);
 	redis_client.addEigenToWriteCallback(0, HUMAN_JOINT_TORQUES_COMMANDED_KEY, human_command_torques);
 
 	redis_client2.createReadCallback(0);
@@ -138,7 +162,6 @@ int main()
 	redis_client2.addEigenToReadCallback(0, LEFT_HAND_POS_KEY, left_hand_pos);
 	redis_client2.addEigenToReadCallback(0, PELVIS_POS_KEY, pelvis_pos);
 	redis_client2.addEigenToReadCallback(0, CHEST_POS_KEY, chest_pos);
-	// CHANGE THIS TO HEAD
 
 	redis_client2.addEigenToReadCallback(0, HEAD_POS_KEY, head_pos);
 	redis_client2.addEigenToReadCallback(0, LEFT_FOOT_ORI_KEY, left_foot_ori);
@@ -146,13 +169,6 @@ int main()
 	redis_client2.addEigenToReadCallback(0, LEFT_HAND_ORI_KEY, left_hand_ori);
 	redis_client2.addEigenToReadCallback(0, CHEST_ORI_KEY, chest_ori);
 	redis_client2.addEigenToReadCallback(0, PELVIS_ORI_KEY, pelvis_ori);
-
-	// // create a timer
-	// LoopTimer timer;
-	// timer.initializeTimer();
-	// timer.setLoopFrequency(1000);
-	// double start_time = timer.elapsedTime(); // secs
-	// bool fTimerDidSleep = true;
 
 	/*******************************************************************************************************************************/
 
@@ -371,13 +387,47 @@ int main()
 		fSimulationLoopDone = string_to_bool(redis_client.get(SIMULATION_LOOP_DONE_KEY));
 		initialized = string_to_bool(redis_client.get(INITIALIZED_KEY));
 
+		redis_client.executeReadCallback(0);
+
 		// run controller loop when simulation loop is done
 		if (fSimulationLoopDone)
 		{
+			/******************************************* ROBO INSTRUCTOR CODE************************************/
+			// get user selected pose
+			// int current_pose = stoi(redis_client.get("PoseSelection")) ? stoi(redis_client.get("PoseSelection")) : CHAIR_POSE;
+			switch (current_pose)
+			{
+			case CHAIR_POSE:
+				joint_task->_desired_position = chair;
+				break;
+			case TREE:
+				joint_task->_desired_position = tree;
+				break;
+			case WARRIOR_1:
+				joint_task->_desired_position = warrior_1;
+				break;
+			case WARRIOR_2:
+				joint_task->_desired_position = warrior_2;
+				break;
+			case WARRIOR_3:
+				joint_task->_desired_position = warrior_3;
+				break;
+			}
+
+			// update model
+			robot->updateModel();
+
+			// update task model and set hierarchy
+			N_prec.setIdentity();
+			joint_task->updateTaskModel(N_prec);
+
+			// compute torques
+			joint_task->computeTorques(joint_task_torques);
+			command_torques = joint_task_torques;
+
 			if (initialized)
 			{
 				redis_client2.executeReadCallback(0);
-				redis_client.executeReadCallback(0);
 				/******************************************************************************************************/
 				/********************************************KINECT HUMAN**********************************************/
 				/******************************************************************************************************/
@@ -514,7 +564,6 @@ int main()
 
 				human_command_torques = 0 * posori_task_torques_chest + human_joint_task_torques + posori_task_torques_left_foot + 0 * posori_task_torques_right_hand + 0 * posori_task_torques_left_hand + 0 * posori_task_torques_pelvis + 0 * posori_task_torques_head;
 				// execute redis write callback
-				redis_client.executeWriteCallback(0);
 
 				// ask for next simulation loop
 				fSimulationLoopDone = false;
@@ -526,6 +575,7 @@ int main()
 			{
 				human_command_torques = 0 * posori_task_torques_chest;
 			}
+			redis_client.executeWriteCallback(0);
 		}
 
 		// controller loop is done

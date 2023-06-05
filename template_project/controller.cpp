@@ -446,24 +446,24 @@ int main()
 				// set desired joint posture to be the initial robot configuration
 				VectorXd human_q_init_desired = human->_q;
 				// human_joint_task->_desired_position = human_q_init_desired;
-				switch (current_pose)
-				{
-				case CHAIR_POSE:
-					human_joint_task->_desired_position = chair;
-					break;
-				case TREE:
-					human_joint_task->_desired_position = tree;
-					break;
-				case WARRIOR_1:
-					human_joint_task->_desired_position = warrior_1;
-					break;
-				case WARRIOR_2:
-					human_joint_task->_desired_position = warrior_2;
-					break;
-				case WARRIOR_3:
-					human_joint_task->_desired_position = warrior_3;
-					break;
-				}
+				// switch (current_pose)
+				// {
+				// case CHAIR_POSE:
+				// 	human_joint_task->_desired_position = chair;
+				// 	break;
+				// case TREE:
+				// 	human_joint_task->_desired_position = tree;
+				// 	break;
+				// case WARRIOR_1:
+				// 	human_joint_task->_desired_position = warrior_1;
+				// 	break;
+				// case WARRIOR_2:
+				// 	human_joint_task->_desired_position = warrior_2;
+				// 	break;
+				// case WARRIOR_3:
+				// 	human_joint_task->_desired_position = warrior_3;
+				// 	break;
+				// }
 
 				/***********************************************CALCULATING TORQUES***************************************/
 
@@ -512,7 +512,7 @@ int main()
 				human_joint_task->updateTaskModel(human_N_prec);
 				human_joint_task->computeTorques(human_joint_task_torques);
 
-				human_command_torques = posori_task_torques_chest + human_joint_task_torques + posori_task_torques_left_foot + posori_task_torques_right_hand + 0 * posori_task_torques_left_hand + 0 * posori_task_torques_pelvis + 0 * posori_task_torques_head;
+				human_command_torques = 0 * posori_task_torques_chest + human_joint_task_torques + posori_task_torques_left_foot + 0 * posori_task_torques_right_hand + 0 * posori_task_torques_left_hand + 0 * posori_task_torques_pelvis + 0 * posori_task_torques_head;
 				// execute redis write callback
 				redis_client.executeWriteCallback(0);
 
@@ -522,7 +522,8 @@ int main()
 
 				counter++;
 			}
-			else{
+			else
+			{
 				human_command_torques = 0 * posori_task_torques_chest;
 			}
 		}

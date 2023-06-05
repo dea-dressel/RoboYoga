@@ -105,8 +105,8 @@ int main()
 	// load robots
 	// auto robot = new Sai2Model::Sai2Model(robot_file, false);
 	auto human = new Sai2Model::Sai2Model(human_file, false);
-	human->_q(2) = M_PI / 32;
-	human->_q(9) = M_PI / 32;
+	human->_q(1) = -M_PI / 4;
+	human->_q(8) = M_PI / 4;
 	// robot->_q = VectorXd::Zero(7);
 	// robot->_dq = VectorXd::Zero(7);
 	// robot->updateModel();

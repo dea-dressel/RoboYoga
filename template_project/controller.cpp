@@ -546,13 +546,13 @@ int main()
 				// posori_task_left_foot->updateTaskModel(human_N_prec);
 				// posori_task_left_foot->computeTorques(posori_task_torques_left_foot);
 
-				// // calculate torques for left hand
-				// human_N_prec = posori_task_chest->_N;
-				// posori_task_left_hand->updateTaskModel(human_N_prec);
-				// posori_task_left_hand->computeTorques(posori_task_torques_left_hand);
+				// calculate torques for left hand
+				human_N_prec = posori_task_chest->_N;
+				posori_task_left_hand->updateTaskModel(human_N_prec);
+				posori_task_left_hand->computeTorques(posori_task_torques_left_hand);
 
 				// calculate torques for right hand
-				human_N_prec = posori_task_left_foot->_N;
+				human_N_prec = posori_task_left_hand->_N;
 				posori_task_right_hand->updateTaskModel(human_N_prec);
 				posori_task_right_hand->computeTorques(posori_task_torques_right_hand);
 
@@ -562,7 +562,7 @@ int main()
 				human_joint_task->updateTaskModel(human_N_prec);
 				human_joint_task->computeTorques(human_joint_task_torques);
 
-				human_command_torques = 0 * posori_task_torques_chest + human_joint_task_torques + posori_task_torques_left_foot + 0 * posori_task_torques_right_hand + 0 * posori_task_torques_left_hand + 0 * posori_task_torques_pelvis + 0 * posori_task_torques_head;
+				human_command_torques = posori_task_torques_chest + human_joint_task_torques + posori_task_torques_left_foot + posori_task_torques_right_hand + posori_task_torques_left_hand + 0 * posori_task_torques_pelvis + 0 * posori_task_torques_head;
 				// execute redis write callback
 
 				// ask for next simulation loop

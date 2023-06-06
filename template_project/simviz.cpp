@@ -26,8 +26,6 @@ using namespace Eigen;
 const string world_file = "./resources/world.urdf";
 const string robot_file = "./resources/stanbot.urdf";
 const string robot_name = "stanbot";
-const string human_file = "./resources/human.urdf";
-const string human_name = "human";
 const string camera_name = "camera_fixed";
 
 // redis client
@@ -80,19 +78,14 @@ int main()
 
 	// load robots
 	auto robot = new Sai2Model::Sai2Model(robot_file, false);
-	auto human = new Sai2Model::Sai2Model(human_file, false);
 	// robot->_q = VectorXd::Zero(7);
 	// robot->_dq = VectorXd::Zero(7);
 	robot->updateModel();
-	human->updateModel();
 
 	// load simulation world
 	auto sim = new Simulation::Sai2Simulation(world_file, false);
 	sim->setJointPositions(robot_name, robot->_q);
 	sim->setJointVelocities(robot_name, robot->_dq);
-
-	sim->setJointPositions(human_name, robot->_q);
-	sim->setJointVelocities(human_name, robot->_dq);
 
 	// set co-efficient of restition to zero for force control
 	sim->setCollisionRestitution(0.0);
@@ -139,8 +132,6 @@ int main()
 	redis_client.set(CONTROLLER_RUNNING_KEY, "0");
 	redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEY, robot->_q);
 	redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY, robot->_dq);
-	redis_client.setEigenMatrixJSON(HUMAN_JOINT_ANGLES_KEY, human->_q);
-	redis_client.setEigenMatrixJSON(HUMAN_JOINT_VELOCITIES_KEY, human->_dq);
 	
 	// start simulation thread
 	thread sim_thread(simulation, robot, sim);

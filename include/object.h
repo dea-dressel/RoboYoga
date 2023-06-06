@@ -36,6 +36,34 @@ void addSphere(Sai2Graphics::Sai2Graphics* graphics,
     graphics->_world->addChild(object);
 }
 
+chai3d::cMesh* addSphere_tyler(Sai2Graphics::Sai2Graphics* graphics,
+                const string& name,
+                const Vector3d& pos,
+                const Quaterniond& ori,
+                const double radius,
+                const Vector4d& rgba) {
+
+    // initialize a cGenericObject to represent this object in the world
+    auto object = new chai3d::cMesh();
+    chai3d::cCreateSphere(object, radius, 100, 100);  // last two values are resolution
+    object->m_name = name;
+    // set object position and rotation
+    object->setLocalPos(chai3d::cVector3d(pos(0), pos(1), pos(2)));
+    { // brace temp variables to separate scope
+        Quaternion<double> tmp_q(ori.w(), ori.x(), ori.y(), ori.z());
+        chai3d::cMatrix3d tmp_cmat3; tmp_cmat3.copyfrom(tmp_q.toRotationMatrix());
+        object->setLocalRot(tmp_cmat3); 
+    }
+
+    // visuals
+    auto color = new chai3d::cColorf(rgba(0), rgba(1), rgba(2), rgba(3));
+    object->m_material->setColor(*color);
+
+    // add to world
+    graphics->_world->addChild(object);
+    return object;
+}
+
 void addBox(Sai2Graphics::Sai2Graphics* graphics,
                 const string& name,
                 const Vector3d& pos,

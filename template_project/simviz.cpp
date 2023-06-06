@@ -140,30 +140,54 @@ int main() {
 	// initialize glew
 	glewInitialize();
 
-	// while window is open:
+	// // while window is open: (OLD VERSION)
+	// int count = 0;
+	// double bar_width = 2.5;
+	// int time_end = 50;
+	// int time_inc = 2;
+	// Vector3d start_pos = Vector3d(-1*bar_width/2, -2.2, 0.1);
+	// Vector3d end_pos = Vector3d(bar_width/2, -2.2, 0.1);
+	// double space_inc = (end_pos(0)-start_pos(0))/(time_end/time_inc);
+
+	// while window is open: (NEW VERSION)
 	int count = 0;
-	double bar_width = 2.5;
-	int time_end = 50;
-	int time_inc = 2;
+	double bar_width = 2.3;
+	int time_end = 20;
+	int num_balls = 20;
+	int time_inc = time_end/num_balls;
 	Vector3d start_pos = Vector3d(-1*bar_width/2, -2.2, 0.1);
 	Vector3d end_pos = Vector3d(bar_width/2, -2.2, 0.1);
-	double space_inc = (end_pos(0)-start_pos(0))/(time_end/time_inc);
+	double space_inc = (end_pos(0)-start_pos(0))/(num_balls);
+	auto color_grey = new chai3d::cColorf(0.5,0.5,0.5,1);
+	auto color_green = new chai3d::cColorf(0,1,0,1);
+	auto color_yellow = new chai3d::cColorf(1,1,0,1);
+	auto color_red = new chai3d::cColorf(1,0,0,1);
+	chai3d::cMesh* ball;
+	chai3d::cMesh* balls[num_balls];
 
 	while (!glfwWindowShouldClose(window) && fSimulationRunning)
 	{
-		// Tyler messing around with adding spheres
-		if (count == time_inc) {
-			addSphere(graphics, "redLight", end_pos, Quaterniond(1,0,0,0),space_inc/2,Vector4d(1,0,0,1));
-		}
-		if (count % time_inc == 0 & count <= time_end) {
-			if (count >= time_end/2 & count < 4*time_end/5) {
-				addSphere(graphics, "yellowLight", start_pos, Quaterniond(1,0,0,0),space_inc/2,Vector4d(1,1,0,1));
-			} else if (count >= 4*time_end/5) {
-				addSphere(graphics, "redLight", start_pos, Quaterniond(1,0,0,0),space_inc/2,Vector4d(1,0,0,1));
-			} else {
-				addSphere(graphics, "greenLight", start_pos, Quaterniond(1,0,0,0),space_inc/2,Vector4d(0,1,0,1));
+		if (count == 0) {
+			for (int i = 0; i<num_balls; i++) {
+				balls[i] = addSphere_tyler(graphics, "greyLight", start_pos, Quaterniond(1,0,0,0),space_inc/2,Vector4d(0.5,0.5,0.5,1));
+				start_pos(0) += space_inc;
 			}
-			start_pos(0) += space_inc;
+		}
+		if (count % time_inc == 0 & count < time_end) {
+			ball = balls[int(count/time_inc)];
+			if (count >= time_end/2 & count < 4*time_end/5) {
+				ball->m_material->setColor(*color_yellow);
+			} else if (count >= 4*time_end/5) {
+				ball->m_material->setColor(*color_red);
+			} else {
+				ball->m_material->setColor(*color_green);
+			}
+		}
+		if (count == time_end + 10) {
+			for (int i = 0; i<num_balls; i++) {
+				ball = balls[i];
+				ball->m_material->setColor(*color_grey);
+			}
 		}
 
 		// update graphics. this automatically waits for the correct amount of time

@@ -18,6 +18,7 @@ bool fSimulationRunning = false;
 void sighandler(int){fSimulationRunning = false;}
 
 #include "redis_keys.h"
+#include "../include/object.h"
 
 using namespace std;
 using namespace Eigen;
@@ -141,9 +142,29 @@ int main() {
 
 	// while window is open:
 	int count = 0;
+	double bar_width = 2.5;
+	int time_end = 50;
+	int time_inc = 2;
+	Vector3d start_pos = Vector3d(-1*bar_width/2, -2.2, 0.1);
+	Vector3d end_pos = Vector3d(bar_width/2, -2.2, 0.1);
+	double space_inc = (end_pos(0)-start_pos(0))/(time_end/time_inc);
 
 	while (!glfwWindowShouldClose(window) && fSimulationRunning)
 	{
+		// Tyler messing around with adding spheres
+		if (count == time_inc) {
+			addSphere(graphics, "redLight", end_pos, Quaterniond(1,0,0,0),0.1,Vector4d(1,0,0,1));
+		}
+		if (count % time_inc == 0 & count <= time_end) {
+			if (count >= time_end/2 & count < 4*time_end/5) {
+				addSphere(graphics, "yellowLight", start_pos, Quaterniond(1,0,0,0),space_inc/2,Vector4d(1,1,0,1));
+			} else if (count >= 4*time_end/5) {
+				addSphere(graphics, "redLight", start_pos, Quaterniond(1,0,0,0),space_inc/2,Vector4d(1,0,0,1));
+			} else {
+				addSphere(graphics, "greenLight", start_pos, Quaterniond(1,0,0,0),space_inc/2,Vector4d(0,1,0,1));
+			}
+			start_pos(0) += space_inc;
+		}
 
 		// update graphics. this automatically waits for the correct amount of time
 		int width, height;

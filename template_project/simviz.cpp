@@ -13,6 +13,7 @@
 #include "timer/LoopTimer.h"
 #include <GLFW/glfw3.h> // must be loaded after loading opengl/glew
 #include <signal.h>
+#include "../include/object.h"
 
 bool fSimulationRunning = false;
 void sighandler(int) { fSimulationRunning = false; }
@@ -103,15 +104,26 @@ int main()
 	// load robots
 	auto robot = new Sai2Model::Sai2Model(robot_file, false);
 	auto human = new Sai2Model::Sai2Model(human_file, false);
+	// human->_q(1) = M_PI / 16;
+	// human->_q(2) = -M_PI / 8;
+	// human->_q(9) = M_PI / 8;
+	// human->_q(3) = M_PI / 16;
+	// human->_q(8) = -M_PI / 16;
+	// human->_q(10) = -M_PI / 16;
+	// human->_q(17) = M_PI / 32;
+	// human->_q(19) = -M_PI / 16;
+	// human->_q(24) = -M_PI / 32;
+	// human->_q(26) = -M_PI / 16;
+
 	human->_q(0) = M_PI / 16;
 	human->_q(1) = -M_PI / 8;
 	human->_q(8) = M_PI / 8;
 	human->_q(2) = M_PI / 16;
 	human->_q(7) = -M_PI / 16;
 	human->_q(9) = -M_PI / 16;
-	human->_q(16) = M_PI / 32; 
+	human->_q(16) = M_PI / 32;
 	human->_q(18) = -M_PI / 16;
-	human->_q(23) = -M_PI / 32; 
+	human->_q(23) = -M_PI / 32;
 	human->_q(25) = -M_PI / 16;
 
 	robot->updateModel();
@@ -184,9 +196,42 @@ int main()
 
 	// while window is open:
 	int count = 0;
+	double bar_width = 2.5;
+	int time_end = 50;
+	int time_inc = 2;
+	Vector3d start_pos = Vector3d(-1 * bar_width / 2, -2.2, 0.1);
+	Vector3d end_pos = Vector3d(bar_width / 2, -2.2, 0.1);
+	double space_inc = (end_pos(0) - start_pos(0)) / (time_end / time_inc);
+
+	int progress_counter;
+	bool show_progress_bar = false;
 
 	while (!glfwWindowShouldClose(window) && fSimulationRunning)
 	{
+		// if (show_progress_bar)
+		// {
+		// 	if (progress_counter == time_inc)
+		// 	{
+		// 		addSphere(graphics, "redLight", end_pos, Quaterniond(1, 0, 0, 0), space_inc / 2, Vector4d(1, 0, 0, 1));
+		// 	}
+		// 	if (progress_counter % time_inc == 0 & progress_counter <= time_end)
+		// 	{
+		// 		if (progress_counter >= time_end / 2 & progress_counter < 4 * time_end / 5)
+		// 		{
+		// 			addSphere(graphics, "yellowLight", start_pos, Quaterniond(1, 0, 0, 0), space_inc / 2, Vector4d(1, 1, 0, 1));
+		// 		}
+		// 		else if (progress_counter >= 4 * time_end / 5)
+		// 		{
+		// 			addSphere(graphics, "redLight", start_pos, Quaterniond(1, 0, 0, 0), space_inc / 2, Vector4d(1, 0, 0, 1));
+		// 		}
+		// 		else
+		// 		{
+		// 			addSphere(graphics, "greenLight", start_pos, Quaterniond(1, 0, 0, 0), space_inc / 2, Vector4d(0, 1, 0, 1));
+		// 		}
+		// 		start_pos(0) += space_inc;
+		// 	}
+		// 	progress_counter++;
+		// }
 
 		// update graphics. this automatically waits for the correct amount of time
 		int width, height;
@@ -289,7 +334,10 @@ int main()
 			redis_client_graphics.setEigenMatrixJSON(INIT_CHEST_ORI_KEY, redis_client2.getEigenMatrixJSON(CHEST_ORI_KEY));
 			redis_client_graphics.setEigenMatrixJSON(INIT_PELVIS_ORI_KEY, redis_client2.getEigenMatrixJSON(PELVIS_ORI_KEY));
 			redis_client_graphics.set(INITIALIZED_KEY, bool_to_string(true));
+			redis_client_graphics.set(INITIALIZED_KEY, bool_to_string(true));
+			progress_counter = 0;
 			cout << "initialized";
+			show_progress_bar = true;
 			init = false;
 		}
 		else if (init)
@@ -395,7 +443,7 @@ void simulation(Sai2Model::Sai2Model *robot, Sai2Model::Sai2Model *human, Simula
 			}
 			else
 			{
-				sim->setJointTorques(robot_name, - robot->_M * (kv * robot->_dq));
+				sim->setJointTorques(robot_name, -robot->_M * (kv * robot->_dq));
 				sim->setJointTorques(human_name, -human->_M * (kv * human->_dq));
 			}
 

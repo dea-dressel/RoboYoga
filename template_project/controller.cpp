@@ -552,7 +552,7 @@ int main()
 				posori_task_left_hand->computeTorques(posori_task_torques_left_hand);
 
 				// calculate torques for right hand
-				human_N_prec = posori_task_left_hand->_N;
+				human_N_prec = posori_task_left_foot->_N;
 				posori_task_right_hand->updateTaskModel(human_N_prec);
 				posori_task_right_hand->computeTorques(posori_task_torques_right_hand);
 

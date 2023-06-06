@@ -153,7 +153,7 @@ int main() {
 	{
 		// Tyler messing around with adding spheres
 		if (count == time_inc) {
-			addSphere(graphics, "redLight", end_pos, Quaterniond(1,0,0,0),0.1,Vector4d(1,0,0,1));
+			addSphere(graphics, "redLight", end_pos, Quaterniond(1,0,0,0),space_inc/2,Vector4d(1,0,0,1));
 		}
 		if (count % time_inc == 0 & count <= time_end) {
 			if (count >= time_end/2 & count < 4*time_end/5) {

@@ -151,33 +151,38 @@ int main() {
 
 	// while window is open: (NEW VERSION)
 	int count = 0;
-	double bar_width = 2.3;
-	int time_end = 20;
-	int num_balls = 20;
+	double bar_width = 1; 								 												//*
+	int time_end = 21;									 												//*
+	int num_balls = 3; 									 												//*
 	int time_inc = time_end/num_balls;
-	Vector3d start_pos = Vector3d(-1*bar_width/2, -2.2, 0.1);
-	Vector3d end_pos = Vector3d(bar_width/2, -2.2, 0.1);
-	double space_inc = (end_pos(0)-start_pos(0))/(num_balls);
+	Vector3d end_pos = Vector3d(bar_width/2, -2.2, 0.1); 												//*
+	Vector3d start_pos = Vector3d(-1*bar_width/2+1.5*(end_pos(0)-start_pos(0))/(num_balls), -2.2, 0.1); //*
+	double space_inc = (end_pos(0)-start_pos(0))/(num_balls); 											//*
 	auto color_grey = new chai3d::cColorf(0.5,0.5,0.5,1);
 	auto color_green = new chai3d::cColorf(0,1,0,1);
 	auto color_yellow = new chai3d::cColorf(1,1,0,1);
 	auto color_red = new chai3d::cColorf(1,0,0,1);
 	chai3d::cMesh* ball;
 	chai3d::cMesh* balls[num_balls];
+	for (int i = 0; i<num_balls; i++) {
+				balls[i] = addSphere_tyler(graphics, "greyLight", start_pos, Quaterniond(1,0,0,0),space_inc/2,Vector4d(0.5,0.5,0.5,1));
+				start_pos(0) += space_inc;
+	}
 
 	while (!glfwWindowShouldClose(window) && fSimulationRunning)
 	{
-		if (count == 0) {
+		if (count == time_end + 10) {
 			for (int i = 0; i<num_balls; i++) {
-				balls[i] = addSphere_tyler(graphics, "greyLight", start_pos, Quaterniond(1,0,0,0),space_inc/2,Vector4d(0.5,0.5,0.5,1));
-				start_pos(0) += space_inc;
+				ball = balls[i];
+				ball->m_material->setColor(*color_grey);
 			}
 		}
+			
 		if (count % time_inc == 0 & count < time_end) {
 			ball = balls[int(count/time_inc)];
-			if (count >= time_end/2 & count < 4*time_end/5) {
+			if (count >= time_end/3 & count < 2*time_end/3) { 	//*
 				ball->m_material->setColor(*color_yellow);
-			} else if (count >= 4*time_end/5) {
+			} else if (count >= 2*time_end/3) { 				//*
 				ball->m_material->setColor(*color_red);
 			} else {
 				ball->m_material->setColor(*color_green);

@@ -26,14 +26,14 @@ void sighandler(int) { runloop = false; }
 // Location of URDF files specifying world and robot information
 const string robot_file = "./resources/stanbot.urdf";
 
-const int CHAIR_POSE = 1;
+const int CHAIR_POSE = 1; // YES
 const int TREE = 2;
-const int WARRIOR_1 = 3;
+const int WARRIOR_1 = 3;	
 const int WARRIOR_2 = 4;
 const int WARRIOR_3 = 5;
-const int TRIANGLE = 6;
-const int FORWARD_FOLD = 7;
-const int STAR = 8;
+const int TRIANGLE = 6;		// YES
+const int FORWARD_FOLD = 7;	// YES
+const int STAR = 8; 		// YES
 const int HORSE = 9;
 
 
@@ -151,7 +151,7 @@ int main()
 
 		// get user selected pose
 		// int current_pose = redis_client.get("PoseSelection");
-		int current_pose = STAR;
+		int current_pose = WARRIOR_2;
 		if (current_pose == CHAIR_POSE) {
 			joint_task->_desired_position = chair;
 		} else if (current_pose == TREE) {

@@ -151,13 +151,13 @@ int main() {
 
 	// while window is open: (NEW VERSION)
 	int count = 0;
-	double bar_width = 1; 								 												//*
-	int time_end = 21;									 												//*
-	int num_balls = 3; 									 												//*
+	double bar_width = 1; 	//*
+	int time_end = 21;		//*
+	int num_balls = 3; 		//*
 	int time_inc = time_end/num_balls;
-	Vector3d end_pos = Vector3d(bar_width/2, -2.2, 0.1); 												//*
+	Vector3d end_pos = Vector3d(bar_width/2, -2.2, 0.1); 	//*
 	Vector3d start_pos = Vector3d(-1*bar_width/2+1.5*(end_pos(0)-start_pos(0))/(num_balls), -2.2, 0.1); //*
-	double space_inc = (end_pos(0)-start_pos(0))/(num_balls); 											//*
+	double space_inc = (end_pos(0)-start_pos(0))/(num_balls); 	//*
 	auto color_grey = new chai3d::cColorf(0.5,0.5,0.5,1);
 	auto color_green = new chai3d::cColorf(0,1,0,1);
 	auto color_yellow = new chai3d::cColorf(1,1,0,1);

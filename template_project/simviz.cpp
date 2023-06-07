@@ -104,27 +104,27 @@ int main()
 	// load robots
 	auto robot = new Sai2Model::Sai2Model(robot_file, false);
 	auto human = new Sai2Model::Sai2Model(human_file, false);
-	// human->_q(1) = M_PI / 16;
-	// human->_q(2) = -M_PI / 8;
-	// human->_q(9) = M_PI / 8;
-	// human->_q(3) = M_PI / 16;
-	// human->_q(8) = -M_PI / 16;
-	// human->_q(10) = -M_PI / 16;
-	// human->_q(17) = M_PI / 32;
-	// human->_q(19) = -M_PI / 16;
-	// human->_q(24) = -M_PI / 32;
-	// human->_q(26) = -M_PI / 16;
+	human->_q(1) = M_PI / 16;
+	human->_q(2) = -M_PI / 8;
+	human->_q(9) = M_PI / 8;
+	human->_q(3) = M_PI / 16;
+	human->_q(8) = -M_PI / 16;
+	human->_q(10) = -M_PI / 16;
+	human->_q(17) = M_PI / 32;
+	human->_q(19) = -M_PI / 16;
+	human->_q(24) = -M_PI / 32;
+	human->_q(26) = -M_PI / 16;
 
-	human->_q(0) = M_PI / 16;
-	human->_q(1) = -M_PI / 8;
-	human->_q(8) = M_PI / 8;
-	human->_q(2) = M_PI / 16;
-	human->_q(7) = -M_PI / 16;
-	human->_q(9) = -M_PI / 16;
-	human->_q(16) = M_PI / 32;
-	human->_q(18) = -M_PI / 16;
-	human->_q(23) = -M_PI / 32;
-	human->_q(25) = -M_PI / 16;
+	// human->_q(0) = M_PI / 16;
+	// human->_q(1) = -M_PI / 8;
+	// human->_q(8) = M_PI / 8;
+	// human->_q(2) = M_PI / 16;
+	// human->_q(7) = -M_PI / 16;
+	// human->_q(9) = -M_PI / 16;
+	// human->_q(16) = M_PI / 32;
+	// human->_q(18) = -M_PI / 16;
+	// human->_q(23) = -M_PI / 32;
+	// human->_q(25) = -M_PI / 16;
 
 	robot->updateModel();
 	human->updateModel();
@@ -196,41 +196,53 @@ int main()
 
 	// while window is open:
 	int count = 0;
-	double bar_width = 2.5;
-	int time_end = 50;
-	int time_inc = 2;
-	Vector3d start_pos = Vector3d(-1 * bar_width / 2, -2.2, 0.1);
-	Vector3d end_pos = Vector3d(bar_width / 2, -2.2, 0.1);
-	double space_inc = (end_pos(0) - start_pos(0)) / (time_end / time_inc);
+	// double bar_width = 2.3;
+	// int time_end = 20;
+	// int num_balls = 20;
+	// int time_inc = time_end / num_balls;
+	// Vector3d start_pos = Vector3d(-1 * bar_width / 2, -2.2, 0.1);
+	// Vector3d end_pos = Vector3d(bar_width / 2, -2.2, 0.1);
+	// double space_inc = (end_pos(0) - start_pos(0)) / (num_balls);
+	// auto color_grey = new chai3d::cColorf(0.5, 0.5, 0.5, 1);
+	// auto color_green = new chai3d::cColorf(0, 1, 0, 1);
+	// auto color_yellow = new chai3d::cColorf(1, 1, 0, 1);
+	// auto color_red = new chai3d::cColorf(1, 0, 0, 1);
+	// chai3d::cMesh *ball;
+	// chai3d::cMesh *balls[num_balls];
 
 	int progress_counter;
 	bool show_progress_bar = false;
 
+	// for (int i = 0; i < num_balls; i++)
+	// {
+	// 	balls[i] = addSphere_tyler(graphics, "greyLight", start_pos, Quaterniond(1, 0, 0, 0), space_inc / 2, Vector4d(0.5, 0.5, 0.5, 1));
+	// 	start_pos(0) += space_inc;
+	// }
 	while (!glfwWindowShouldClose(window) && fSimulationRunning)
 	{
-		// if (show_progress_bar)
+		// if (count % time_inc == 0 & count < time_end)
 		// {
-		// 	if (progress_counter == time_inc)
+		// 	ball = balls[int(count / time_inc)];
+		// 	if (count >= time_end / 2 & count < 4 * time_end / 5)
 		// 	{
-		// 		addSphere(graphics, "redLight", end_pos, Quaterniond(1, 0, 0, 0), space_inc / 2, Vector4d(1, 0, 0, 1));
+		// 		ball->m_material->setColor(*color_yellow);
 		// 	}
-		// 	if (progress_counter % time_inc == 0 & progress_counter <= time_end)
+		// 	else if (count >= 4 * time_end / 5)
 		// 	{
-		// 		if (progress_counter >= time_end / 2 & progress_counter < 4 * time_end / 5)
-		// 		{
-		// 			addSphere(graphics, "yellowLight", start_pos, Quaterniond(1, 0, 0, 0), space_inc / 2, Vector4d(1, 1, 0, 1));
-		// 		}
-		// 		else if (progress_counter >= 4 * time_end / 5)
-		// 		{
-		// 			addSphere(graphics, "redLight", start_pos, Quaterniond(1, 0, 0, 0), space_inc / 2, Vector4d(1, 0, 0, 1));
-		// 		}
-		// 		else
-		// 		{
-		// 			addSphere(graphics, "greenLight", start_pos, Quaterniond(1, 0, 0, 0), space_inc / 2, Vector4d(0, 1, 0, 1));
-		// 		}
-		// 		start_pos(0) += space_inc;
+		// 		ball->m_material->setColor(*color_red);
 		// 	}
-		// 	progress_counter++;
+		// 	else
+		// 	{
+		// 		ball->m_material->setColor(*color_green);
+		// 	}
+		// }
+		// if (count == time_end + 10)
+		// {
+		// 	for (int i = 0; i < num_balls; i++)
+		// 	{
+		// 		ball = balls[i];
+		// 		ball->m_material->setColor(*color_grey);
+		// 	}
 		// }
 
 		// update graphics. this automatically waits for the correct amount of time

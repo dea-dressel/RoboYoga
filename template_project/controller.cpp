@@ -28,16 +28,15 @@ const string robot_file = "./resources/stanbot.urdf";
 
 const int CHAIR_POSE = 1; // YES
 const int TREE = 2;
-const int WARRIOR_1 = 3;	
+const int WARRIOR_1 = 3;
 const int WARRIOR_2 = 4;
 const int WARRIOR_3 = 5;
 const int TRIANGLE = 6;		// YES
-const int FORWARD_FOLD = 7;	// YES
-const int STAR = 8; 		// YES
+const int FORWARD_FOLD = 7; // YES
+const int STAR = 8;			// YES
 const int HORSE = 9;
 
-
-enum State 
+enum State
 {
 	POSTURE = 0,
 	MOTION
@@ -115,7 +114,7 @@ int main()
 	warrior_1 << 0.0, 0.0, -1.3, 1.5, 0.0, 0.0, 0.0, 0.0, 0.6, 0.2, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 
 	VectorXd warrior_2 = VectorXd::Zero(dof);
-	// forward view 
+	// forward view
 	// warrior_2 << 0.0, 0.0, -1.3, 1.5, 0.0, 1.5, -1.5, 0.0, 0.6, 0.2, -1.0, 0.0, 1.0, 0.2, 0.0, 0.0, -1.5, 1.5, 1.5, 0.0, 0.0, 0.0, 0.0, -1.5, -1.5, -1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.5;
 	// side view
 	warrior_2 << RAD(45), 0.0, RAD(1), 0.0, RAD(-45), 0.0, RAD(90), 0.0, RAD(-70), RAD(80), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.5, 1.5, 1.5, 0.0, 0.0, 0.0, 0.0, -1.5, -1.5, -1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.5;
@@ -124,18 +123,17 @@ int main()
 	warrior_3 << 0.0, 0.0, -0.2, 1.4, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 1., 0.0, 0.0, 0.0, 0.0, 0.0, -3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 
 	VectorXd triangle = VectorXd::Zero(dof);
-	triangle << RAD(25), 0.0, 0.0, 0.0, RAD(15), 0.0, 0.0, RAD(-80), 0.0, 0.0, 0.0, RAD(40), RAD(90), RAD(35), 0.0, 0.0, 0.0,RAD(90),0.0,0.0,0.0,0.0,0.0,0.0,RAD(-92),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0;
-	
+	triangle << RAD(25), 0.0, 0.0, 0.0, RAD(15), 0.0, 0.0, RAD(-80), 0.0, 0.0, 0.0, RAD(40), RAD(90), RAD(35), 0.0, 0.0, 0.0, RAD(90), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, RAD(-92), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+
 	VectorXd forward_fold = VectorXd::Zero(dof);
-	forward_fold << 0.0, 0.0, 0.0, RAD(45), 0.0, 0.0, 0.0, 0.0, RAD(-45), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, RAD(40), RAD(-90),0.0,0.0,0.0,0.0,0.0,0.0,RAD(-90),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0;
+	forward_fold << 0.0, 0.0, 0.0, RAD(45), 0.0, 0.0, 0.0, 0.0, RAD(-45), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, RAD(40), RAD(-90), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, RAD(-90), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 
 	VectorXd star = VectorXd::Zero(dof);
-	star << RAD(25), 0.0, 0.0, 0.0, RAD(-25), 0.0, 0.0, RAD(-25),0.0, 0.0, 0.0, RAD(25), 0.0, 0.0, 0.0, 0.0, 0.0, RAD(90), 0.0,0.0,0.0,0.0,0.0,0.0,RAD(-90),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0;
-	
+	star << RAD(25), 0.0, 0.0, 0.0, RAD(-25), 0.0, 0.0, RAD(-25), 0.0, 0.0, 0.0, RAD(25), 0.0, 0.0, 0.0, 0.0, 0.0, RAD(90), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, RAD(-90), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+
 	VectorXd horse = VectorXd::Zero(dof);
-	horse << RAD(25), 0.0, RAD(-45), RAD(45), RAD(-45), 0.0, 0.0, RAD(-45),RAD(-45), RAD(45), 0.0,0.0, 0.0, 0.0, 0.0, 0.0, 0.0, RAD(90), 0.0,0.0,0.0,0.0,0.0,0.0,RAD(-90),0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0;
-	
-	
+	horse << RAD(25), 0.0, RAD(-45), RAD(45), RAD(-45), 0.0, 0.0, RAD(-45), RAD(-45), RAD(45), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, RAD(90), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, RAD(-90), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+
 	unsigned long long counter = 0;
 
 	runloop = true;
@@ -151,28 +149,43 @@ int main()
 
 		// get user selected pose
 		// int current_pose = redis_client.get("PoseSelection");
-		int current_pose = WARRIOR_2;
-		if (current_pose == CHAIR_POSE) {
+		int current_pose = TRIANGLE;
+		if (current_pose == CHAIR_POSE)
+		{
 			joint_task->_desired_position = chair;
-		} else if (current_pose == TREE) {
+		}
+		else if (current_pose == TREE)
+		{
 			joint_task->_desired_position = tree;
-		} else if (current_pose == WARRIOR_1) {
+		}
+		else if (current_pose == WARRIOR_1)
+		{
 			joint_task->_desired_position = warrior_1;
-		} else if (current_pose == WARRIOR_2) {
+		}
+		else if (current_pose == WARRIOR_2)
+		{
 			joint_task->_desired_position = warrior_2;
-		} else if (current_pose == WARRIOR_3) {
+		}
+		else if (current_pose == WARRIOR_3)
+		{
 			joint_task->_desired_position = warrior_3;
-		} else if (current_pose == TRIANGLE) {
+		}
+		else if (current_pose == TRIANGLE)
+		{
 			joint_task->_desired_position = triangle;
-		} else if (current_pose == FORWARD_FOLD) {
+		}
+		else if (current_pose == FORWARD_FOLD)
+		{
 			joint_task->_desired_position = forward_fold;
-		} else if (current_pose == STAR) {
+		}
+		else if (current_pose == STAR)
+		{
 			joint_task->_desired_position = star;
-		} else if (current_pose == HORSE) {
+		}
+		else if (current_pose == HORSE)
+		{
 			joint_task->_desired_position = horse;
 		}
-		
-
 
 		// update model
 		robot->updateModel();
@@ -208,7 +221,6 @@ int main()
 
 		counter++;
 	}
-
 
 	double end_time = timer.elapsedTime();
 	std::cout << "\n";

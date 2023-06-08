@@ -7,6 +7,12 @@
 		<origin xyz="-1.85 -0.05 0.1" rpy="0 0 0" />
 	</robot>
 
+	<robot name="human">
+		<model dir="./resources" path="human.urdf" name="human" />
+		<origin xyz="1.0 -0.05 0.1" rpy="0 0 0" />
+	</robot>
+
+
 	<light name="light1" type="directional">
 		<position xyz="2.0 -2.0 2.0" />
 		<lookat xyz="0.0 0.0 0.0" />
@@ -231,7 +237,7 @@
 			</geometry>
 		</visual>
 	</static_object>
-
+<!-- 
 	<static_object name="blanket">
 		<origin xyz="-2.2 4.0 0.0" rpy="1.57 0 1.57" />
 		<visual>
@@ -250,6 +256,6 @@
 				<mesh filename="../../model/objects/meshes/vase_03.obj" />
 			</geometry>
 		</visual>
-	</static_object>
+	</static_object> -->
 
 </world>

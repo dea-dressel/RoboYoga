@@ -26,11 +26,13 @@ using namespace Eigen;
 
 // specify urdf and robots
 const string world_file = "./resources/world.urdf";
-// const string robot_file = "./resources/stanbot.urdf";
+const string robot_file = "./resources/stanbot.urdf";
 const string robot_name = "stanbot";
 const string human_file = "./resources/human.urdf";
 const string human_name = "human";
 const string camera_name = "camera_fixed";
+int count_init = 0;
+bool init = false;
 
 // redis client
 RedisClient redis_client;
@@ -38,7 +40,7 @@ RedisClient redis_client2;
 RedisClient redis_client_graphics;
 
 // simulation thread
-void simulation(Sai2Model::Sai2Model *human, Simulation::Sai2Simulation *sim);
+void simulation(Sai2Model::Sai2Model *robot, Sai2Model::Sai2Model *human, Simulation::Sai2Simulation *sim);
 
 // function for converting string to bool
 bool string_to_bool(const std::string &x);
@@ -66,7 +68,10 @@ bool fTransYn = false;
 bool fTransZp = false;
 bool fTransZn = false;
 bool fRotPanTilt = false;
-// bool fRobotLinkSelect = false;
+
+// containers to average init positions
+vector<Vector3d> init_pos(6, Vector3d::Zero());
+int n_init_samples = 50;
 
 int main()
 {
@@ -93,19 +98,29 @@ int main()
 	graphics->getCameraPose(camera_name, camera_pos, camera_vertical, camera_lookat);
 	graphics->_world->setBackgroundColor(66.0 / 255, 135.0 / 255, 245.0 / 255); // set blue background
 	graphics->getCamera(camera_name)->setClippingPlanes(0.1, 50);				// set the near and far clipping planes
+	// graphics->showLinkFrame("chest", "human");
 
 	// load robots
-	// auto robot = new Sai2Model::Sai2Model(robot_file, false);
+	auto robot = new Sai2Model::Sai2Model(robot_file, false);
 	auto human = new Sai2Model::Sai2Model(human_file, false);
-	// robot->_q = VectorXd::Zero(7);
-	// robot->_dq = VectorXd::Zero(7);
-	// robot->updateModel();
+	human->_q(0) = M_PI / 16;
+	human->_q(1) = -M_PI / 8;
+	human->_q(8) = M_PI / 8;
+	human->_q(2) = M_PI / 16;
+	human->_q(7) = -M_PI / 16;
+	human->_q(9) = -M_PI / 16;
+	human->_q(16) = M_PI / 32; 
+	human->_q(18) = -M_PI / 16;
+	human->_q(23) = -M_PI / 32; 
+	human->_q(25) = -M_PI / 16;
+
+	robot->updateModel();
 	human->updateModel();
 
 	// load simulation world
 	auto sim = new Simulation::Sai2Simulation(world_file, false);
-	// sim->setJointPositions(robot_name, robot->_q);
-	// sim->setJointVelocities(robot_name, robot->_dq);
+	sim->setJointPositions(robot_name, robot->_q);
+	sim->setJointVelocities(robot_name, robot->_dq);
 
 	sim->setJointPositions(human_name, human->_q);
 	sim->setJointVelocities(human_name, human->_dq);
@@ -154,16 +169,15 @@ int main()
 	// init redis client values
 	redis_client.set(CONTROLLER_RUNNING_KEY, "0");
 	redis_client.set(INITIALIZED_KEY, bool_to_string(false));
-	// redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEY, robot->_q);
-	// redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY, robot->_dq);
+	redis_client.setEigenMatrixJSON(JOINT_ANGLES_KEY, robot->_q);
+	redis_client.setEigenMatrixJSON(JOINT_VELOCITIES_KEY, robot->_dq);
 	redis_client.setEigenMatrixJSON(HUMAN_JOINT_ANGLES_KEY, human->_q);
 	redis_client.setEigenMatrixJSON(HUMAN_JOINT_VELOCITIES_KEY, human->_dq);
 	redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
 	redis_client.set(CONTROLLER_LOOP_DONE_KEY, bool_to_string(fControllerLoopDone));
 
 	// start simulation thread
-	// ADD ROBOT in betwen sim and human
-	thread sim_thread(simulation, human, sim);
+	thread sim_thread(simulation, robot, human, sim);
 
 	// initialize glew
 	glewInitialize();
@@ -177,7 +191,7 @@ int main()
 		// update graphics. this automatically waits for the correct amount of time
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
-		// graphics->updateGraphics(robot_name, robot);
+		graphics->updateGraphics(robot_name, robot);
 		graphics->updateGraphics(human_name, human);
 		graphics->render(camera_name, width, height);
 
@@ -260,6 +274,44 @@ int main()
 		graphics->setCameraPose(camera_name, camera_pos, cam_up_axis, camera_lookat);
 		glfwGetCursorPos(window, &last_cursorx, &last_cursory);
 
+		if (count_init == n_init_samples && init == true)
+		{
+			redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_FOOT_POS_KEY, init_pos[0]);
+			redis_client_graphics.setEigenMatrixJSON(INIT_RIGHT_HAND_POS_KEY, init_pos[1]);
+			redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_HAND_POS_KEY, init_pos[2]);
+			redis_client_graphics.setEigenMatrixJSON(INIT_HEAD_POS_KEY, init_pos[3]);
+			redis_client_graphics.setEigenMatrixJSON(INIT_CHEST_POS_KEY, init_pos[4]);
+			redis_client_graphics.setEigenMatrixJSON(INIT_PELVIS_POS_KEY, init_pos[5]);
+			redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_FOOT_ORI_KEY, redis_client2.getEigenMatrixJSON(LEFT_FOOT_ORI_KEY));
+			redis_client_graphics.setEigenMatrixJSON(INIT_RIGHT_HAND_ORI_KEY, redis_client2.getEigenMatrixJSON(RIGHT_HAND_ORI_KEY));
+			redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_HAND_ORI_KEY, redis_client2.getEigenMatrixJSON(LEFT_HAND_ORI_KEY));
+			redis_client_graphics.setEigenMatrixJSON(INIT_HEAD_ORI_KEY, redis_client2.getEigenMatrixJSON(HEAD_ORI_KEY));
+			redis_client_graphics.setEigenMatrixJSON(INIT_CHEST_ORI_KEY, redis_client2.getEigenMatrixJSON(CHEST_ORI_KEY));
+			redis_client_graphics.setEigenMatrixJSON(INIT_PELVIS_ORI_KEY, redis_client2.getEigenMatrixJSON(PELVIS_ORI_KEY));
+			redis_client_graphics.set(INITIALIZED_KEY, bool_to_string(true));
+			cout << "initialized";
+			init = false;
+		}
+		else if (init)
+		{
+			init_pos[0] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(LEFT_FOOT_POS_KEY);
+			init_pos[1] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(RIGHT_HAND_POS_KEY);
+			init_pos[2] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(LEFT_HAND_POS_KEY);
+			init_pos[3] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(HEAD_POS_KEY);
+			init_pos[4] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(CHEST_POS_KEY);
+			init_pos[5] += (1. / n_init_samples) * redis_client2.getEigenMatrixJSON(PELVIS_POS_KEY);
+
+			for (auto val : init_pos)
+			{
+				cout << val.transpose() << "\n";
+			}
+			cout << endl;
+		}
+		// cout << count_init << "\n";
+
+		if (init)
+			count_init++;
+
 		count++;
 	}
 
@@ -280,14 +332,13 @@ int main()
 
 //------------------------------------------------------------------------------
 
-//ADD robot into before human
-void simulation(Sai2Model::Sai2Model *human, Simulation::Sai2Simulation *sim)
+void simulation(Sai2Model::Sai2Model *robot, Sai2Model::Sai2Model *human, Simulation::Sai2Simulation *sim)
 {
 	// prepare simulation
-	// int dof = robot->dof();
-	// VectorXd command_torques = VectorXd::Zero(dof);
-	// redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, command_torques);
-	// VectorXd g = VectorXd::Zero(dof);
+	int dof = robot->dof();
+	VectorXd command_torques = VectorXd::Zero(dof);
+	redis_client.setEigenMatrixJSON(JOINT_TORQUES_COMMANDED_KEY, command_torques);
+	VectorXd g = VectorXd::Zero(dof);
 
 	int human_dof = human->dof();
 	VectorXd human_command_torques = VectorXd::Zero(human_dof);
@@ -303,12 +354,12 @@ void simulation(Sai2Model::Sai2Model *human, Simulation::Sai2Simulation *sim)
 
 	// add to read callback
 	redis_client.addStringToReadCallback(0, CONTROLLER_RUNNING_KEY, controller_status);
-	// redis_client.addEigenToReadCallback(0, JOINT_TORQUES_COMMANDED_KEY, command_torques);
+	redis_client.addEigenToReadCallback(0, JOINT_TORQUES_COMMANDED_KEY, command_torques);
 	redis_client.addEigenToReadCallback(0, HUMAN_JOINT_TORQUES_COMMANDED_KEY, human_command_torques);
 
 	// add to write callback
-	// redis_client.addEigenToWriteCallback(0, JOINT_ANGLES_KEY, robot->_q);
-	// redis_client.addEigenToWriteCallback(0, JOINT_VELOCITIES_KEY, robot->_dq);
+	redis_client.addEigenToWriteCallback(0, JOINT_ANGLES_KEY, robot->_q);
+	redis_client.addEigenToWriteCallback(0, JOINT_VELOCITIES_KEY, robot->_dq);
 	redis_client.addEigenToWriteCallback(0, HUMAN_JOINT_ANGLES_KEY, human->_q);
 	redis_client.addEigenToWriteCallback(0, HUMAN_JOINT_VELOCITIES_KEY, human->_dq);
 
@@ -333,23 +384,19 @@ void simulation(Sai2Model::Sai2Model *human, Simulation::Sai2Simulation *sim)
 			redis_client.executeReadCallback(0);
 
 			// apply gravity compensation
-			// robot->gravityVector(g);
+			robot->gravityVector(g);
 			human->gravityVector(human_g);
 
 			// set joint torques
 			if (controller_status == "1")
 			{
-				// sim->setJointTorques(robot_name, command_torques + g - robot->_M * (kv * robot->_dq));
-				// sim->setJointTorques(human_name, human_command_torques + human_g - human->_M * (kv * human->_dq));
-				// sim->setJointTorques(robot_name, command_torques - robot->_M * (kv * robot->_dq));
+				sim->setJointTorques(robot_name, command_torques - robot->_M * (kv * robot->_dq));
 				sim->setJointTorques(human_name, human_command_torques - human->_M * (kv * human->_dq));
 			}
 			else
 			{
-				// sim->setJointTorques(robot_name, g - robot->_M * (kv * robot->_dq));
-				// sim->setJointTorques(human_name, human_g - human->_M * (kv * human->_dq));
-				// sim->setJointTorques(robot_name, - robot->_M * (kv * robot->_dq));
-				sim->setJointTorques(human_name, - human->_M * (kv * human->_dq));
+				sim->setJointTorques(robot_name, - robot->_M * (kv * robot->_dq));
+				sim->setJointTorques(human_name, -human->_M * (kv * human->_dq));
 			}
 
 			// for (auto robot: sim->_world->m_dynamicObjects){
@@ -365,9 +412,9 @@ void simulation(Sai2Model::Sai2Model *human, Simulation::Sai2Simulation *sim)
 			sim->integrate(0.001);
 
 			// read joint positions, velocities, update model
-			// sim->getJointPositions(robot_name, robot->_q);
-			// sim->getJointVelocities(robot_name, robot->_dq);
-			// robot->updateModel();
+			sim->getJointPositions(robot_name, robot->_q);
+			sim->getJointVelocities(robot_name, robot->_dq);
+			robot->updateModel();
 
 			sim->getJointPositions(human_name, human->_q);
 			sim->getJointVelocities(human_name, human->_dq);
@@ -473,12 +520,8 @@ void keySelect(GLFWwindow *window, int key, int scancode, int action, int mods)
 		fTransZn = set;
 		break;
 	case GLFW_KEY_I:
-		redis_client_graphics.set(INITIALIZED_KEY, bool_to_string(true));
-		redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_FOOT_POS_KEY, redis_client2.getEigenMatrixJSON(LEFT_FOOT_POS_KEY));
-		redis_client_graphics.setEigenMatrixJSON(INIT_RIGHT_HAND_POS_KEY, redis_client2.getEigenMatrixJSON(RIGHT_HAND_POS_KEY));
-		redis_client_graphics.setEigenMatrixJSON(INIT_LEFT_HAND_POS_KEY, redis_client2.getEigenMatrixJSON(LEFT_HAND_POS_KEY));
-		redis_client_graphics.setEigenMatrixJSON(INIT_HEAD_POS_KEY, redis_client2.getEigenMatrixJSON(HEAD_POS_KEY));
-		redis_client_graphics.setEigenMatrixJSON(INIT_CHEST_POS_KEY, redis_client2.getEigenMatrixJSON(CHEST_POS_KEY));
+		count_init = 0;
+		init = true;
 		break;
 	default:
 		break;

@@ -37,10 +37,10 @@ const std::string HEAD_ORI_KEY = "kinect::ori::head";
 const std::string NECK_POS_KEY = "kinect::pos::neck";
 const std::string NECK_ORI_KEY = "kinect::ori::neck";
 
-const std::string RIGHT_FOOT_POS_KEY = "kinect::pos::foot_right";
-const std::string RIGHT_FOOT_ORI_KEY = "kinect::ori::foot_right";
-const std::string LEFT_FOOT_POS_KEY = "kinect::pos::foot_left";
-const std::string LEFT_FOOT_ORI_KEY = "kinect::ori::foot_left";
+const std::string RIGHT_FOOT_POS_KEY = "kinect::pos::ankle_right";
+const std::string RIGHT_FOOT_ORI_KEY = "kinect::ori::ankle_right";
+const std::string LEFT_FOOT_POS_KEY = "kinect::pos::ankle_left";
+const std::string LEFT_FOOT_ORI_KEY = "kinect::ori::ankle_left";
 const std::string RIGHT_KNEE_POS_KEY = "kinect::pos::knee_right";
 const std::string RIGHT_KNEE_ORI_KEY = "kinect::ori::knee_right";
 const std::string LEFT_KNEE_POS_KEY = "kinect::pos::knee_left";

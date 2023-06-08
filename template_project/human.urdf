@@ -676,6 +676,16 @@
       <limit effort="12" lower="-0.0175" upper="3.7525" velocity="2.6100"/>
     </joint>
 
+     <!-- <joint name="j14" type="revolute">
+      <safety_controller k_position=“100.0” k_velocity=“40.0" soft_lower_limit=“-0.0175” soft_upper_limit=“3.7525"/>
+      <origin rpy=“0 0 0” xyz=“0.06 0 0.2"/>
+      <parent link=“hip”/>
+      <child link=“chest_virtual”/>
+      <axis xyz=“0 0 1”/>
+      <calibration falling=“80.0" />
+      <limit effort=“12” lower=“-0.0175" upper=“3.7525” velocity=“2.6100"/>
+    </joint>  -->
+
     <joint name="waist_3" type="revolute">
       <safety_controller k_position="100.0" k_velocity="40.0" soft_lower_limit="-0.0175" soft_upper_limit="3.7525"/>
       <origin rpy="0 0 0" xyz="0.0 0 0.0"/>

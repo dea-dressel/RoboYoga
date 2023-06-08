@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 2.8.12)
 project (cs225a)
 # SET(CMAKE_CXX_FLAGS "-std=c++11 -I/usr/include -I/usr/local/include -I/usr/local/include/opencv4")
 SET(CMAKE_CXX_FLAGS "-std=c++11 -I/usr/include -I/usr/local/include")
-SET(CMAKE_BUILD_TYPE "Debug")
+SET(CMAKE_BUILD_TYPE "Release")
 
 # set(OpenCV_DIR /usr/local/include/opencv4/)
 

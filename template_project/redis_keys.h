@@ -4,7 +4,7 @@
  * 
  */
 const std::string POSE_SELECTION_KEY = "pose::selection";
-const std::string POSE_COMPLETE_KEY= "pose::complete";
+const std::string POSE_COMPLETE_KEY = "pose::complete";
 const std::string INITIALIZED_KEY = "initialized";
 
 const std::string INIT_LEFT_FOOT_POS_KEY = "init::pos::left_foot";

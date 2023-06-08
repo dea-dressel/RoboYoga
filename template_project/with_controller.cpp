@@ -566,6 +566,8 @@ int main()
 					redis_client.set(POSE_COMPLETE_KEY, "1");
 					timeout_counter = 0;
 					// human_joint_task->_desired_position = human->_q * 0;
+					human_joint_task->_desired_position = human_q_init_desired;
+
 					joint_task->_desired_position = robot->_q * 0;
 					redis_client.set(INITIALIZED_KEY, bool_to_string(false));
 					reset_counter = 50;
@@ -577,7 +579,7 @@ int main()
 			{
 				if (reset_counter > 0)
 				{
-					reset_counter --;
+					reset_counter--;
 					redis_client.set(POSE_COMPLETE_KEY, "0");
 					redis_client.set(POSE_SELECTION_KEY, "0");
 					// human_joint_task_torques = VectorXd::Zero(human_dof);

@@ -21,6 +21,7 @@ void sighandler(int) { runloop = false; }
 bool fSimulationLoopDone = false;
 bool initialized = false;
 bool fControllerLoopDone = false;
+string timeout = "false";
 
 // function for converting string to bool
 bool string_to_bool(const std::string &x);
@@ -38,13 +39,13 @@ const string human_file = "./resources/human.urdf";
 
 const int NONE = 0;
 const int CHAIR_POSE = 1;
-const int FORWARD_FOLD = 2;
-const int STAR = 3;
-const int TRIANGLE = 4;
-const int TREE = 5;
-const int WARRIOR_1 = 6;
-const int WARRIOR_2 = 7;
-const int WARRIOR_3 = 8;
+const int TREE = 2;
+const int WARRIOR_1 = 3;
+const int WARRIOR_2 = 4;
+const int WARRIOR_3 = 5;
+const int TRIANGLE = 6;
+const int FORWARD_FOLD = 7;
+const int STAR = 8;
 
 // const int TRIANGLE = 6;
 
@@ -153,6 +154,7 @@ int main()
 	redis_client.addEigenToReadCallback(0, INIT_LEFT_HAND_ORI_KEY, init_kinect_left_hand_ori);
 	redis_client.addEigenToReadCallback(0, INIT_CHEST_ORI_KEY, init_kinect_chest_ori);
 	redis_client.addEigenToReadCallback(0, INIT_PELVIS_ORI_KEY, init_kinect_pelvis_ori);
+	redis_client.addStringToReadCallback(0, POSE_COMPLETE_KEY, timeout);
 
 	// add to write callback
 	redis_client.addStringToWriteCallback(0, CONTROLLER_RUNNING_KEY, controller_status);
@@ -373,6 +375,9 @@ int main()
 
 	float scale = 0.001;
 	unsigned long long counter = 0;
+	unsigned long long reset_counter = 0;
+	unsigned long long timeout_counter = 0;
+
 	runloop = true;
 
 	int current_pose = NONE;
@@ -581,12 +586,36 @@ int main()
 				// ask for next simulation loop
 				fSimulationLoopDone = false;
 				redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
+				if (string_to_bool(timeout))
+				{
+					// redis_client.set(POSE_COMPLETE_KEY, bool_to_string(true));
+					// timeout_counter = 0;
+					// human_joint_task->_desired_position = human->_q * 0;
+					human_joint_task->_desired_position = human_q_init_desired;
+
+					joint_task->_desired_position = robot->_q * 0;
+					redis_client.set(INITIALIZED_KEY, bool_to_string(false));
+					reset_counter = 50;
+					cout << "REACHED HERE";
+				}
 
 				counter++;
 			}
 			else
 			{
-				human_command_torques = 0 * posori_task_torques_chest;
+				if (reset_counter > 0)
+				{
+					reset_counter--;
+					redis_client.set(POSE_COMPLETE_KEY, "false");
+					// redis_client.set(POSE_SELECTION_KEY, "0");
+					cout << "CALLED";
+					human_joint_task->_desired_position = human_q_init_desired;
+					human_joint_task->computeTorques(human_joint_task_torques);
+					human_command_torques = human_joint_task_torques;
+					joint_task->_desired_position = q_init_desired;
+					joint_task->computeTorques(joint_task_torques);
+					command_torques = joint_task_torques;
+				}
 			}
 			// execute redis write callback
 			redis_client.executeWriteCallback(0);

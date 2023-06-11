@@ -234,9 +234,6 @@ int main()
 	posori_task_left_foot->_kp_ori = 100.0;
 	posori_task_left_foot->_kv_ori = 20.0;
 
-	// posori_task_left_foot->_kp = 100.0;
-	// posori_task_left_foot->_kv = 20.0;
-
 	// pose task for right hand
 	Vector3d old_right_hand_pos;
 	Vector3d init_right_hand_pos;
@@ -251,15 +248,9 @@ int main()
 	posori_task_right_hand->_use_interpolation_flag = false;
 	posori_task_right_hand->_use_velocity_saturation_flag = false;
 	human->positionInWorld(init_right_hand_pos, control_link, control_point);
-	// human->rotationInWorld(init_right_hand_ori, control_link);
 	posori_task_right_hand->_desired_position = init_right_hand_pos;
-	// posori_task_right_hand->_desired_orientation = init_right_hand_ori;
 
 	VectorXd posori_task_torques_right_hand = VectorXd::Zero(human_dof);
-	// posori_task_right_hand->_kp_pos = 100.0;
-	// posori_task_right_hand->_kv_pos = 20.0;
-	// posori_task_right_hand->_kp_ori = 100.0;
-	// posori_task_right_hand->_kv_ori = 20.0;
 
 	posori_task_right_hand->_kp = 100.0;
 	posori_task_right_hand->_kv = 20.0;
@@ -272,21 +263,14 @@ int main()
 	old_left_hand_pos = redis_client2.getEigenMatrixJSON(LEFT_HAND_POS_KEY);
 
 	control_link = "left_hand";
-	// auto posori_task_left_hand = new Sai2Primitives::PosOriTask(human, control_link, control_point);
 	auto posori_task_left_hand = new Sai2Primitives::PositionTask(human, control_link, control_point);
 
 	posori_task_left_hand->_use_interpolation_flag = false;
 	posori_task_left_hand->_use_velocity_saturation_flag = false;
 	human->positionInWorld(init_left_hand_pos, control_link, control_point);
-	// human->rotationInWorld(init_left_hand_ori, control_link);
 	posori_task_left_hand->_desired_position = init_left_hand_pos;
-	// posori_task_left_hand->_desired_orientation = init_left_hand_ori;
 
 	VectorXd posori_task_torques_left_hand = VectorXd::Zero(human_dof);
-	// posori_task_left_hand->_kp_pos = 100.0;
-	// posori_task_left_hand->_kv_pos = 20.0;
-	// posori_task_left_hand->_kp_ori = 100.0;
-	// posori_task_left_hand->_kv_ori = 20.0;
 
 	posori_task_left_hand->_kp = 100.0;
 	posori_task_left_hand->_kv = 20.0;
@@ -297,22 +281,6 @@ int main()
 	Matrix3d init_pelvis_ori;
 
 	old_pelvis_pos = redis_client2.getEigenMatrixJSON(CHEST_POS_KEY);
-
-	control_link = "hip";
-	// auto posori_task_pelvis = new Sai2Primitives::PositionTask(human, control_link, control_point);
-	Matrix3d rotation_offset_pelvis = AngleAxisd(M_PI, Vector3d(1, 0, 0)).toRotationMatrix() * AngleAxisd(M_PI / 2, Vector3d(0, 1, 0)).toRotationMatrix();
-	auto posori_task_pelvis = new Sai2Primitives::OrientationTask(human, control_link, control_point, rotation_offset_pelvis);
-
-	posori_task_pelvis->_use_interpolation_flag = false;
-	posori_task_pelvis->_use_velocity_saturation_flag = false;
-	// human->positionInWorld(init_pelvis_pos, control_link, control_point);
-	human->rotationInWorld(init_pelvis_ori, control_link);
-	// posori_task_pelvis->_desired_position = init_pelvis_pos;
-	posori_task_pelvis->_desired_orientation = init_pelvis_ori;
-
-	VectorXd posori_task_torques_pelvis = VectorXd::Zero(human_dof);
-	posori_task_pelvis->_kp = 100.0;
-	posori_task_pelvis->_kv = 20.0;
 
 	// pose task for chest
 	Vector3d old_chest_pos;
@@ -339,26 +307,6 @@ int main()
 	posori_task_chest->_kp_ori = 100.0;
 	posori_task_chest->_kv_ori = 20.0;
 
-	// pose task for head
-	Vector3d old_head_pos;
-	Vector3d init_head_pos;
-	Matrix3d init_head_ori;
-
-	old_head_pos = redis_client2.getEigenMatrixJSON(HEAD_POS_KEY);
-
-	control_link = "head";
-	auto posori_task_head = new Sai2Primitives::PositionTask(human, control_link, control_point);
-	posori_task_head->setDynamicDecouplingNone();
-
-	posori_task_head->_use_interpolation_flag = false;
-	posori_task_head->_use_velocity_saturation_flag = true;
-	human->positionInWorld(init_head_pos, control_link, control_point);
-	posori_task_head->_desired_position = init_head_pos;
-
-	VectorXd posori_task_torques_head = VectorXd::Zero(human_dof);
-	posori_task_head->_kp = 100.0;
-	posori_task_head->_kv = 20.0;
-
 	// joint task
 	auto human_joint_task = new Sai2Primitives::JointTask(human);
 	human_joint_task->_use_interpolation_flag = false;
@@ -373,17 +321,11 @@ int main()
 
 	float scale = 0.001;
 	unsigned long long counter = 0;
+	unsigned long long timeout_counter = 0;
+	unsigned long long reset_counter = 0;
 	runloop = true;
 
 	int current_pose = NONE;
-	try
-	{
-		current_pose = stoi(redis_client.get(POSE_SELECTION_KEY));
-	}
-	catch (...)
-	{
-		cout << "No pose selected" << endl;
-	}
 
 	// create a timer
 	LoopTimer timer;
@@ -409,50 +351,59 @@ int main()
 		// run controller loop when simulation loop is done
 		if (fSimulationLoopDone)
 		{
-			/******************************************* ROBO INSTRUCTOR CODE************************************/
-			// get user selected pose
-			// int current_pose = stoi(redis_client.get("PoseSelection")) ? stoi(redis_client.get("PoseSelection")) : CHAIR_POSE;
-			switch (current_pose)
-			{
-			case CHAIR_POSE:
-				joint_task->_desired_position = chair;
-				break;
-			case TREE:
-				joint_task->_desired_position = tree;
-				break;
-			case WARRIOR_1:
-				joint_task->_desired_position = warrior_1;
-				break;
-			case WARRIOR_2:
-				joint_task->_desired_position = warrior_2;
-				break;
-			case WARRIOR_3:
-				joint_task->_desired_position = warrior_3;
-				break;
-			case TRIANGLE:
-				joint_task->_desired_position = triangle;
-				break;
-			case FORWARD_FOLD:
-				joint_task->_desired_position = forward_fold;
-				break;
-			case STAR:
-				joint_task->_desired_position = star;
-				break;
-			}
-
-			// update model
-			robot->updateModel();
-
-			// update task model and set hierarchy
-			N_prec.setIdentity();
-			joint_task->updateTaskModel(N_prec);
-
-			// compute torques
-			joint_task->computeTorques(joint_task_torques);
-			command_torques = joint_task_torques;
-
 			if (initialized)
 			{
+				/******************************************* ROBO INSTRUCTOR CODE************************************/
+				// get user selected pose
+				try
+				{
+					current_pose = stoi(redis_client.get(POSE_SELECTION_KEY));
+				}
+				catch (...)
+				{
+					cout << "No pose selected" << endl;
+				}
+				switch (current_pose)
+				{
+				case CHAIR_POSE:
+					joint_task->_desired_position = chair;
+					break;
+				case TREE:
+					joint_task->_desired_position = tree;
+					break;
+				case WARRIOR_1:
+					joint_task->_desired_position = warrior_1;
+					break;
+				case WARRIOR_2:
+					joint_task->_desired_position = warrior_2;
+					break;
+				case WARRIOR_3:
+					joint_task->_desired_position = warrior_3;
+					break;
+				case TRIANGLE:
+					joint_task->_desired_position = triangle;
+					break;
+				case FORWARD_FOLD:
+					joint_task->_desired_position = forward_fold;
+					break;
+				case STAR:
+					joint_task->_desired_position = star;
+					break;
+				}
+
+				// update model
+				robot->updateModel();
+
+				// update task model and set hierarchy
+				N_prec.setIdentity();
+				joint_task->updateTaskModel(N_prec);
+
+				// compute torques
+				joint_task->computeTorques(joint_task_torques);
+				command_torques = joint_task_torques;
+
+				timeout_counter++;
+
 				redis_client2.executeReadCallback(0);
 				// update model
 				human->updateModel();
@@ -465,8 +416,6 @@ int main()
 				{
 					posori_task_left_foot->_desired_position = init_left_foot_pos + (kinect_to_world * (left_foot_pos - init_kinect_left_foot_pos)) * scale * 0.25;
 				}
-				// posori_task_left_foot->_desired_orientation = init_left_foot_ori;
-				// posori_task_left_foot->_desired_orientation = kinect_to_world * left_foot_ori * init_left_foot_ori.transpose() * init_kinect_left_foot_ori * AngleAxisd(-M_PI, Vector3d::UnitX()).toRotationMatrix().matrix();
 				posori_task_left_foot->_desired_orientation = kinect_to_world * left_foot_ori;
 				old_left_foot_pos = left_foot_pos;
 
@@ -475,8 +424,6 @@ int main()
 				{
 					posori_task_right_hand->_desired_position = init_right_hand_pos + (kinect_to_world * (right_hand_pos - init_kinect_right_hand_pos)) * scale;
 				}
-				// posori_task_right_hand->_desired_orientation = kinect_to_world*right_hand_ori*init_kinect_right_hand_ori.transpose()*init_right_hand_ori;
-				// posori_task_right_hand->_desired_orientation = kinect_to_world * right_hand_ori * init_right_hand_ori.transpose() * init_kinect_right_hand_ori * AngleAxisd(-M_PI, Vector3d::UnitX()).toRotationMatrix().matrix();
 				old_right_hand_pos = right_hand_pos;
 
 				// left hand desired
@@ -484,65 +431,20 @@ int main()
 				{
 					posori_task_left_hand->_desired_position = init_left_hand_pos + (kinect_to_world * (left_hand_pos - init_kinect_left_hand_pos)) * scale;
 				}
-				// posori_task_left_hand->_desired_orientation = init_left_hand_ori;
-				// posori_task_left_hand->_desired_orientation = kinect_to_world * left_hand_ori * init_left_hand_ori.transpose() * init_kinect_left_hand_ori * AngleAxisd(-M_PI, Vector3d::UnitX()).toRotationMatrix().matrix();
 				old_left_hand_pos = left_hand_pos;
 
-				// pelvis desired
-				// if ((pelvis_pos - old_pelvis_pos).norm() < 4)
-				// {
-				// 	posori_task_pelvis->_desired_position = init_pelvis_pos + (kinect_to_world * (pelvis_pos - init_kinect_pelvis_pos)) * scale;
-				// }
-				posori_task_pelvis->_desired_orientation = kinect_to_world * pelvis_ori;
-				old_pelvis_pos = pelvis_pos;
-
+				// chest desired
 				posori_task_chest->_desired_position = init_chest_pos + kinect_to_world * (chest_pos - init_kinect_chest_pos) * scale;
 				posori_task_chest->_desired_orientation = kinect_to_world * chest_ori;
 				old_chest_pos = chest_pos;
 
-				// // head desired
-				// if ((head_pos - old_head_pos).norm() < 4)
-				// {
-				// 	posori_task_head->_desired_position = init_head_pos + (kinect_to_world * (head_pos - init_kinect_head_pos)) * scale;
-				// }
-				// posori_task_head->_desired_orientation = init_head_ori;
-				// old_head_pos = head_pos;
-
 				// joint task
 				// set desired joint posture to be the initial robot configuration
 				human_joint_task->_desired_position = human_q_init_desired;
-				human_joint_task->_desired_position(2) = joint_task->_desired_position(2); //knee
-				human_joint_task->_desired_position(9) = joint_task->_desired_position(9); //knee
-
-				// switch (current_pose)
-				// {
-				// case CHAIR_POSE:
-				// 	human_joint_task->_desired_position = chair;
-				// 	break;
-				// case TREE:
-				// 	human_joint_task->_desired_position = tree;
-				// 	break;
-				// case WARRIOR_1:
-				// 	human_joint_task->_desired_position = warrior_1;
-				// 	break;
-				// case WARRIOR_2:
-				// 	human_joint_task->_desired_position = warrior_2;
-				// 	break;
-				// case WARRIOR_3:
-				// 	human_joint_task->_desired_position = warrior_3;
-				// 	break;
-				// }
+				human_joint_task->_desired_position(2) = joint_task->_desired_position(2); // knee
+				human_joint_task->_desired_position(9) = joint_task->_desired_position(9); // knee
 
 				/***********************************************CALCULATING TORQUES***************************************/
-				// // calculate torques for head
-				// human_N_prec.setIdentity();
-				// posori_task_head->updateTaskModel(human_N_prec);
-				// posori_task_head->computeTorques(posori_task_torques_head);
-
-				// // calculate torques for pelvis
-				// human_N_prec = posori_task_head->_N;
-				// posori_task_pelvis->updateTaskModel(human_N_prec);
-				// posori_task_pelvis->computeTorques(posori_task_torques_pelvis);
 
 				// calculate torques for left foot
 				human_N_prec.setIdentity();
@@ -555,11 +457,6 @@ int main()
 				posori_task_chest->updateTaskModel(human_N_prec);
 				posori_task_chest->computeTorques(posori_task_torques_chest);
 
-				// // calculate torques for left foot
-				// human_N_prec = posori_task_chest->_N;
-				// posori_task_left_foot->updateTaskModel(human_N_prec);
-				// posori_task_left_foot->computeTorques(posori_task_torques_left_foot);
-
 				// calculate torques for left hand
 				human_N_prec = posori_task_chest->_N;
 				posori_task_left_hand->updateTaskModel(human_N_prec);
@@ -571,22 +468,94 @@ int main()
 				posori_task_right_hand->computeTorques(posori_task_torques_right_hand);
 
 				// calculate torques to keep joint space
-				// human_N_prec = posori_task_pelvis->_N;
 				human_N_prec = posori_task_right_hand->_N;
 				human_joint_task->updateTaskModel(human_N_prec);
 				human_joint_task->computeTorques(human_joint_task_torques);
 
-				human_command_torques = posori_task_torques_chest + human_joint_task_torques + posori_task_torques_left_foot + posori_task_torques_right_hand + posori_task_torques_left_hand + 0 * posori_task_torques_pelvis + 0 * posori_task_torques_head;
+				human_command_torques = posori_task_torques_chest + human_joint_task_torques + posori_task_torques_left_foot + posori_task_torques_right_hand + posori_task_torques_left_hand;
 
 				// ask for next simulation loop
 				fSimulationLoopDone = false;
 				redis_client.set(SIMULATION_LOOP_DONE_KEY, bool_to_string(fSimulationLoopDone));
 
+				if (timeout_counter == 700)
+				{
+					redis_client.set(POSE_COMPLETE_KEY, "1");
+					timeout_counter = 0;
+					// human_joint_task->_desired_position = human->_q * 0;
+					human_joint_task->_desired_position = human_q_init_desired;
+					human_joint_task->computeTorques(human_joint_task_torques);
+					human_command_torques = human_joint_task_torques;
+					joint_task->_desired_position = robot->_q * 0;
+					redis_client.set(INITIALIZED_KEY, bool_to_string(false));
+					reset_counter = 50;
+				}
+
 				counter++;
 			}
 			else
 			{
-				human_command_torques = 0 * posori_task_torques_chest;
+				// human_command_torques = 0 * posori_task_torques_chest;
+				if (reset_counter > 0)
+				{
+					reset_counter--;
+					redis_client.set(POSE_COMPLETE_KEY, "0");
+					redis_client.set(POSE_SELECTION_KEY, "0");
+
+					posori_task_chest->_desired_position = init_chest_pos;
+					posori_task_chest->_desired_orientation = init_chest_ori;
+					posori_task_left_foot->_desired_position = init_left_foot_pos;
+					posori_task_left_foot->_desired_orientation = init_left_foot_ori;
+					posori_task_right_hand->_desired_position = init_right_hand_pos;
+					posori_task_left_hand->_desired_position = init_left_hand_pos;
+					human_joint_task->_desired_position = human_q_init_desired;
+					cout << human_q_init_desired.transpose() << endl;
+					cout << "init chest" << init_chest_pos.transpose() << endl;
+					cout << "desired chest" << posori_task_chest->_desired_position.transpose() << endl;
+					cout << posori_task_left_foot->_desired_position.transpose() << endl;
+					cout << posori_task_right_hand->_desired_position.transpose() << endl;
+					cout << posori_task_left_hand->_desired_position.transpose() << endl;
+
+					// calculate torques for left foot
+					human_N_prec.setIdentity();
+					posori_task_left_foot->updateTaskModel(human_N_prec);
+					posori_task_left_foot->computeTorques(posori_task_torques_left_foot);
+
+					// calculate torques for chest
+					human_N_prec = posori_task_left_foot->_N;
+					posori_task_chest->updateTaskModel(human_N_prec);
+					posori_task_chest->computeTorques(posori_task_torques_chest);
+
+					// calculate torques for left hand
+					human_N_prec = posori_task_chest->_N;
+					posori_task_left_hand->updateTaskModel(human_N_prec);
+					posori_task_left_hand->computeTorques(posori_task_torques_left_hand);
+
+					// calculate torques for right hand
+					human_N_prec = posori_task_left_hand->_N;
+					posori_task_right_hand->updateTaskModel(human_N_prec);
+					posori_task_right_hand->computeTorques(posori_task_torques_right_hand);
+
+					// calculate torques to keep joint space
+					human_N_prec = posori_task_right_hand->_N;
+					human_joint_task->updateTaskModel(human_N_prec);
+					human_joint_task->computeTorques(human_joint_task_torques);
+
+					human_joint_task->computeTorques(human_joint_task_torques);
+					human_command_torques = human_joint_task_torques + posori_task_torques_chest + posori_task_torques_left_foot + posori_task_torques_right_hand + posori_task_torques_left_hand;
+					cout << "human command torques" << human_command_torques.transpose() << endl;
+					joint_task->_desired_position = q_init_desired;
+					joint_task->computeTorques(joint_task_torques);
+					command_torques = joint_task_torques;
+
+				}
+
+				human_joint_task->_desired_position = human_q_init_desired;
+				human_joint_task->computeTorques(human_joint_task_torques);
+				human_command_torques = human_joint_task_torques;
+				joint_task->_desired_position = q_init_desired;
+				joint_task->computeTorques(joint_task_torques);
+				command_torques = joint_task_torques;
 			}
 			// execute redis write callback
 			redis_client.executeWriteCallback(0);

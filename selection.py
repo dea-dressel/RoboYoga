@@ -11,6 +11,7 @@ redis.set('pose::complete', "0")
 im = Image.open(r"poses.png")
 im.show()
 
+
 while True:
     
     # viewer = subprocess.Popen(['python','imviewer.py'])

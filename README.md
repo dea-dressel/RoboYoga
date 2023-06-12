@@ -12,9 +12,7 @@ Once the application is running, the user can select any of the avaliable poses 
 In order to use this application, you must have a computer and a Microsoft Kinect.
 
 ## Demonstration Video
-To see RoboYoga in action, watch our demonstration video!
-
-[![RoboYoga_Environment](https://github.com/dea-dressel/RoboYoga/assets/64561136/a4915bfa-4b6f-4915-a97a-769a49d5f031)](https://www.youtube.com/watch?v=jwW1PvoQIew "RoboYoga")
+To see RoboYoga in action, watch our [demonstration video!](https://www.youtube.com/watch?v=jwW1PvoQIew).
 
 ## Final Report
 Take a look at our final report for details on our implementation.

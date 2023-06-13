@@ -453,7 +453,7 @@ void simulation(Sai2Model::Sai2Model *robot, Sai2Model::Sai2Model *human, Simula
 			// set joint torques
 			if (controller_status == "1")
 			{
-				sim->setJointTorques(robot_name, command_torques - robot->_M * (kv * robot->_dq));
+				sim->setJointTorques(robot_name, command_torques);
 				sim->setJointTorques(human_name, human_command_torques - human->_M * (kv * human->_dq));
 			}
 			else
